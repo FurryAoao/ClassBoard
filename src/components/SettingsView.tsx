@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSettings } from "../store/useSettings";
-import { FEATURE_META, FEATURE_ORDER } from "../lib/utils";
+import { FEATURE_META, FEATURE_ORDER, isTauri } from "../lib/utils";
 import { FeatureIcon, UiIcon } from "./icons";
 import { FEATURE_TINT } from "./CardHeader";
 
@@ -8,7 +8,38 @@ export default function SettingsView() {
   const { enabled, toggleFeature, exportAll, importAll } = useSettings();
   const [json, setJson] = useState("");
   const [msg, setMsg] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
   const onCount = FEATURE_ORDER.filter((k) => enabled[k]).length;
+
+  const downloadFile = async () => {
+    const j = await exportAll();
+    setJson(j);
+    const name = `classboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    if (isTauri()) {
+      try {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+        const path = await save({ defaultPath: name, filters: [{ name: "JSON", extensions: ["json"] }] });
+        if (path) { await writeTextFile(path, j); setMsg(`已保存到 ${path}`); }
+        return;
+      } catch { /* fallback to browser download */ }
+    }
+    const blob = new Blob([j], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setMsg("已导出文件 + 下方文本框，复制保存均可。");
+  };
+
+  const readFile = async (f: File) => {
+    try {
+      const text = await f.text();
+      setJson(text);
+      await importAll(text);
+      setMsg("导入成功，已刷新。");
+    } catch { setMsg("导入失败：文件不是有效的 ClassBoard 备份"); }
+  };
 
   return (
     <div className="space-y-2.5">
@@ -16,6 +47,18 @@ export default function SettingsView() {
         <span className="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center"><UiIcon k="sliders" size={14} /></span>
         <span className="text-[13px] font-bold tracking-tight">功能开关</span>
         <span className="cb-chip bg-emerald-500/15 text-emerald-600 !text-[10px]">{onCount} / {FEATURE_ORDER.length} 开启</span>
+      </div>
+      <div className="flex gap-1.5">
+        <button className="cb-btn-ghost flex-1 !py-1.5 !text-[11px]" onClick={() => {
+          const { setFeature } = useSettings.getState();
+          FEATURE_ORDER.forEach((k) => { if (k !== "clock") setFeature(k, true); });
+          setMsg("已全部开启");
+        }}>全部开启</button>
+        <button className="cb-btn-ghost flex-1 !py-1.5 !text-[11px]" onClick={() => {
+          const { setFeature } = useSettings.getState();
+          FEATURE_ORDER.forEach((k) => { if (k !== "clock") setFeature(k, false); });
+          setMsg("已只留时钟（默认唯时）");
+        }}>只留时钟</button>
       </div>
       <div className="text-[10px] text-neutral-400 px-0.5 -mt-1">关闭后隐藏入口 / 停止任务 / 保留数据</div>
       <div className="space-y-1.5">
@@ -44,18 +87,24 @@ export default function SettingsView() {
         <span className="text-[13px] font-bold tracking-tight">本地数据 · 导出 / 导入</span>
       </div>
       <div className="flex gap-1.5">
-        <button className="cb-btn-primary flex-1"
+        <button className="cb-btn-primary flex-1" onClick={downloadFile}>导出备份文件</button>
+        <button className="cb-btn-ghost flex-1" onClick={() => fileRef.current?.click()}>从文件导入</button>
+        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) readFile(f); e.target.value = ""; }} />
+      </div>
+      <div className="flex gap-1.5">
+        <button className="cb-btn-ghost flex-1 !text-[11px]"
           onClick={async () => { const j = await exportAll(); setJson(j); setMsg("已导出到下方文本框，复制保存即可。"); }}>
-          导出全部数据
+          导出到文本框
         </button>
-        <button className="cb-btn-ghost flex-1"
+        <button className="cb-btn-ghost flex-1 !text-[11px]"
           onClick={async () => {
-            try { await importAll(json); } catch { setMsg("导入失败：JSON 格式不正确"); }
+            try { await importAll(json); setMsg("导入成功，已刷新。"); } catch { setMsg("导入失败：JSON 格式不正确"); }
           }}>
-          从下方导入
+          从文本框导入
         </button>
       </div>
-      <textarea value={json} onChange={(e) => setJson(e.target.value)} placeholder="导出 JSON 会显示在这里；粘贴备份 JSON 后点导入"
+      <textarea value={json} onChange={(e) => setJson(e.target.value)} placeholder="文本框方式：导出 JSON 显示在这里；粘贴备份后点导入"
         className="cb-input !h-20 !text-[10px] font-mono resize-none" />
       {msg && <div className="text-[11px] font-bold text-emerald-600 px-1">{msg}</div>}
       <div className="text-[10px] text-neutral-400 px-1 pb-2 text-center">本地优先 · SQLite + localStorage 双存 · 不登录不联网也能用</div>

@@ -3,21 +3,33 @@ import { usePersistentState } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
 
-/** 随机点名 / 分组 */
+/** 随机点名 / 分组：不重复点完一轮 + 历史 */
 export default function PickerCard() {
   const [names, setNames] = usePersistentState<string[]>("picker:names", []);
   const [draft, setDraft] = useState("");
   const [result, setResult] = useState<string | string[] | null>(null);
   const [rolling, setRolling] = useState(false);
   const [groupN, setGroupN] = useState(4);
+  const [picked, setPicked] = usePersistentState<string[]>("picker:picked", []);
+  const [fair, setFair] = usePersistentState("picker:fair", true);
+
+  const remaining = useMemo(() => names.filter((n) => !picked.includes(n)), [names, picked]);
 
   const pick = () => {
-    if (!names.length) return;
+    const pool = fair ? (remaining.length ? remaining : names) : names;
+    if (!pool.length) return;
+    // 一轮点完自动开启新一轮
+    const freshRound = fair && remaining.length === 0;
+    const base = freshRound ? [] : picked;
     setRolling(true);
     let i = 0;
     const t = setInterval(() => {
-      setResult(names[Math.floor(Math.random() * names.length)]);
-      if (++i > 10) { clearInterval(t); setRolling(false); }
+      const name = pool[Math.floor(Math.random() * pool.length)];
+      setResult(name);
+      if (++i > 10) {
+        clearInterval(t); setRolling(false);
+        if (fair && typeof name === "string") setPicked([...base, name]);
+      }
     }, 70);
   };
   const groups = useMemo(() => {
@@ -27,7 +39,15 @@ export default function PickerCard() {
 
   return (
     <div className="space-y-2">
-      <CardHeader icon="picker" title="随机点名" sub={`${names.length} 人`} />
+      <CardHeader icon="picker" title="随机点名" sub={`${names.length} 人${fair && names.length ? ` · 剩 ${remaining.length} 未点` : ""}`}
+        right={
+          names.length > 0 ? (
+            <button onClick={() => setFair(!fair)} title="公平模式：点完一轮前不重复"
+              className={`cb-chip !text-[10px] transition-colors ${fair ? "bg-violet-500/15 text-violet-600" : "bg-black/[0.05] dark:bg-white/10 text-neutral-400"}`}>
+              {fair ? "不重复" : "可重复"}
+            </button>
+          ) : undefined
+        } />
       <div className="min-h-[84px] flex items-center justify-center rounded-3xl bg-gradient-to-b from-white/80 to-white/40 dark:from-white/[0.07] dark:to-white/[0.02] border border-black/5 dark:border-white/10 px-3">
         {result === null ? <span className="text-[12px] text-neutral-400">点击下方点名</span>
           : Array.isArray(result) ? (
@@ -37,6 +57,12 @@ export default function PickerCard() {
           ) : <span className={`text-3xl font-black tracking-tight text-neutral-900 dark:text-white ${rolling ? "animate-pulse" : "animate-pop-in"}`}>{result}</span>}
       </div>
       {groups}
+      {picked.length > 0 && !Array.isArray(result) && (
+        <div className="flex items-center gap-1.5 px-1">
+          <span className="text-[10px] text-neutral-400 flex-1 truncate">已点：{picked.slice(-6).join("、")}{picked.length > 6 ? ` 等 ${picked.length} 人` : ""}</span>
+          <button className="text-[10px] text-neutral-400 hover:text-red-500 shrink-0" onClick={() => setPicked([])}>重开一轮</button>
+        </div>
+      )}
       <div className="flex gap-2">
         <button onClick={pick} disabled={!names.length || rolling} className="cb-btn-primary flex-1 !py-2.5 !text-[13px]">点一名</button>
         <div className="flex items-center gap-1.5">
@@ -49,13 +75,13 @@ export default function PickerCard() {
             }}>分组抽</button>
         </div>
       </div>
-      <textarea value={names.join("\n")} onChange={(e) => setNames(e.target.value.split(/[\n,，、\s]+/).map((s) => s.trim()).filter(Boolean))}
+      <textarea value={names.join("\n")} onChange={(e) => { setNames(e.target.value.split(/[\n,，、\s]+/).map((s) => s.trim()).filter(Boolean)); setPicked([]); }}
         placeholder="粘贴全班名单（一行一人，也可用逗号/空格分隔），自动保存" rows={3}
         className="cb-input resize-none !py-2.5" />
       <div className="flex gap-1.5">
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="单个添加姓名" className="cb-input" />
         <button className="cb-btn-accent !px-3.5 flex items-center" onClick={() => { if (draft.trim()) { setNames([...names, draft.trim()]); setDraft(""); } }}><UiIcon k="plus" size={13} /></button>
-        <button className="cb-btn-ghost" onClick={() => { setNames([]); setResult(null); }}>清空</button>
+        <button className="cb-btn-ghost" onClick={() => { setNames([]); setResult(null); setPicked([]); }}>清空</button>
       </div>
     </div>
   );

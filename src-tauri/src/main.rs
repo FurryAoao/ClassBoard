@@ -26,13 +26,15 @@ fn main() {
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
                 // 轻量常驻：置顶、不抢焦点（focus:false）、不进任务栏（配置里 skipTaskbar）
                 // 注意：不要 set_focusable(false)，否则输入框无法打字；
                 // “不抢焦点”靠 tauri.conf.json 的 "focus": false 实现。
                 let _ = win.set_always_on_top(true);
-                dock_bottom_right(&win, 208.0, 56.0);
+                dock_bottom_right(&win, 232.0, 56.0);
             }
             Ok(())
         })

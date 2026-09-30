@@ -29,6 +29,12 @@
     "opener:allow-open-path",
     "global-shortcut:default",
     "global-shortcut:allow-register",
-    "global-shortcut:allow-unregister"
+    "global-shortcut:allow-unregister",
+    "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "fs:default",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file"
   ]
 }
