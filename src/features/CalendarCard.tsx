@@ -4,12 +4,13 @@ import { fmtDate } from "../lib/utils";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
 
-/** 日历：月视图 + 当日日程 */
+/** 日历：月视图 + 当日日程 + 本月 agenda */
 export default function CalendarCard() {
   const now = useNow(true);
   const [offset, setOffset] = useState(0);
   const [events, setEvents] = usePersistentState<Record<string, string[]>>("calendar:events", {});
   const [draft, setDraft] = useState("");
+  const [showAgenda, setShowAgenda] = useState(false);
 
   const base = useMemo(() => new Date(now.getFullYear(), now.getMonth() + offset, 1), [now, offset]);
   const cells = useMemo(() => {
@@ -25,9 +26,24 @@ export default function CalendarCard() {
   const key = sel ?? todayStr;
   const add = () => { if (!draft.trim()) return; setEvents({ ...events, [key]: [...(events[key] ?? []), draft.trim()] }); setDraft(""); };
 
+  const monthKeys = useMemo(() => {
+    const prefix = `${cells.y}-${String(cells.m + 1).padStart(2, "0")}`;
+    return Object.entries(events)
+      .filter(([k, v]) => k.startsWith(prefix) && v.length)
+      .sort(([a], [b]) => a.localeCompare(b));
+  }, [events, cells.y, cells.m]);
+  const monthCount = monthKeys.reduce((n, [, v]) => n + v.length, 0);
+
   return (
     <div className="space-y-2">
-      <CardHeader icon="calendar" title="日历" sub={`${cells.y} 年 ${cells.m + 1} 月`} />
+      <CardHeader icon="calendar" title="日历" sub={`${cells.y} 年 ${cells.m + 1} 月${monthCount ? ` · ${monthCount} 项日程` : ""}`}
+        right={
+          monthCount > 0 ? (
+            <button onClick={() => setShowAgenda(!showAgenda)} className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">
+              {showAgenda ? "收起 agenda" : "本月 agenda"}
+            </button>
+          ) : undefined
+        } />
       <div className="flex items-center gap-1.5">
         <button onClick={() => setOffset(offset - 1)} className="w-7 h-7 rounded-full bg-black/[0.04] dark:bg-white/[0.07] flex items-center justify-center text-neutral-500 hover:bg-black/[0.08] transition-colors"><UiIcon k="chevL" size={13} /></button>
         <button onClick={() => { setOffset(0); setSel(null); }} className="flex-1 text-[11px] py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.07] font-bold text-neutral-600 dark:text-neutral-200">回到今天</button>
@@ -52,6 +68,16 @@ export default function CalendarCard() {
           })}
         </div>
       </div>
+      {showAgenda && monthKeys.length > 0 && (
+        <div className="cb-panel-card !py-2 space-y-1 max-h-28 overflow-y-auto animate-slide-up">
+          {monthKeys.map(([k, v]) => (
+            <button key={k} onClick={() => { setSel(k); setShowAgenda(false); }} className="w-full flex gap-2 text-left text-[11px]">
+              <span className="font-bold text-sky-600 dark:text-sky-400 shrink-0" style={{ fontVariantNumeric: "tabular-nums" }}>{k.slice(5)}</span>
+              <span className="flex-1 truncate text-neutral-600 dark:text-neutral-300">{v.join(" / ")}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="text-[11px] font-bold px-1 text-neutral-500">{key} 的日程</div>
       <div className="space-y-1">
         {(events[key] ?? []).map((e, i) => (

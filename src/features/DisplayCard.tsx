@@ -2,16 +2,27 @@ import { useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
 import CardHeader from "../components/CardHeader";
 
-/** 多屏 / 投屏控制：状态记录 + 扩展屏提示 */
+/** 多屏 / 投屏控制：状态记录 + 多显示器检测 */
 export default function DisplayCard() {
   const [mode, setMode] = usePersistentState<"mirror" | "extend" | "off">("display:mode", "off");
   const [monitors, setMonitors] = useState<string[]>([]);
+  const [msg, setMsg] = useState("");
   const detect = async () => {
+    setMsg("");
     try {
-      const { currentMonitor } = await import("@tauri-apps/api/window");
-      const wins = await currentMonitor();
-      setMonitors([wins ? `主屏 ${wins.size.width}×${wins.size.height} @${wins.scaleFactor}x` : "主屏可用"]);
-    } catch { setMonitors(["浏览器预览：无法读取显示器信息"]); }
+      const win = await import("@tauri-apps/api/window");
+      const out: string[] = [];
+      if (typeof (win as any).availableMonitors === "function") {
+        const all = await (win as any).availableMonitors();
+        all.forEach((m: any, i: number) =>
+          out.push(`屏幕${i + 1} ${m.size.width}×${m.size.height} @${m.scaleFactor}x`));
+      }
+      if (typeof (win as any).currentMonitor === "function") {
+        const cur = await (win as any).currentMonitor();
+        if (cur) out.push(`当前窗口所在屏 ${cur.size.width}×${cur.size.height} @${cur.scaleFactor}x`);
+      }
+      setMonitors(out.length ? out : ["检测到显示器，但读不到尺寸"]);
+    } catch { setMonitors([]); setMsg("浏览器预览读不到显示器信息，桌面端可用"); }
   };
   const label = mode === "mirror" ? "镜像投屏中" : mode === "extend" ? "扩展屏讲课" : "未投屏";
   return (
@@ -30,6 +41,7 @@ export default function DisplayCard() {
         <span className="block text-neutral-400 text-[10px] mt-0.5">Win+P / macOS 显示器设置切换实体投屏，这里只做状态记录</span>
       </div>
       <button onClick={detect} className="cb-btn-accent w-full !py-2.5">检测显示器</button>
+      {msg && <div className="text-[11px] font-bold text-sky-600 px-1">{msg}</div>}
       {monitors.map((m, i) => <div key={i} className="cb-row !py-1.5 text-[11px] text-neutral-500">{m}</div>)}
     </div>
   );
