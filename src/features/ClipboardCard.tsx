@@ -1,4 +1,6 @@
 import { usePersistentState } from "../lib/store-helpers";
+import { UiIcon } from "../components/icons";
+import CardHeader from "../components/CardHeader";
 
 /** 剪贴板历史：手动收藏模式（轻量，不常驻监听） */
 export default function ClipboardCard() {
@@ -11,17 +13,17 @@ export default function ClipboardCard() {
   };
   return (
     <div className="space-y-2">
-      <div className="text-[12px] font-bold">📋 剪贴板历史 <span className="font-normal text-neutral-400">· 最多 30 条</span></div>
-      <button onClick={paste} className="w-full text-[12px] py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black font-bold">＋ 收藏当前剪贴板</button>
+      <CardHeader icon="clipboard" title="剪贴板历史" sub="最多 30 条" />
+      <button onClick={paste} className="cb-btn-primary w-full !py-2.5 flex items-center justify-center gap-1.5"><UiIcon k="plus" size={13} />收藏当前剪贴板</button>
       <div className="space-y-1 max-h-56 overflow-y-auto">
         {items.map((t, i) => (
-          <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-white/50 dark:bg-white/5 text-[11px]">
-            <span className="flex-1 truncate">{t}</span>
-            <button className="text-sky-600 font-bold" onClick={() => navigator.clipboard?.writeText(t).catch(() => {})}>复制</button>
-            <button className="text-neutral-400 hover:text-red-500" onClick={() => setItems(items.filter((_, j) => j !== i))}>✕</button>
+          <div key={i} className="cb-row !py-2 text-[11px]">
+            <span className="flex-1 truncate text-neutral-700 dark:text-neutral-200">{t}</span>
+            <button className="text-[11px] text-sky-600 dark:text-sky-400 font-bold hover:underline shrink-0" onClick={() => navigator.clipboard?.writeText(t).catch(() => {})}>复制</button>
+            <button className="cb-icon-btn !w-5 !h-5" onClick={() => setItems(items.filter((_, j) => j !== i))}><UiIcon k="x" size={10} /></button>
           </div>
         ))}
-        {items.length === 0 && <div className="text-center text-[11px] text-neutral-400 py-4">点上方按钮把常用板书/链接收进来</div>}
+        {items.length === 0 && <div className="cb-empty">点上方按钮把常用板书 / 链接收进来</div>}
       </div>
     </div>
   );

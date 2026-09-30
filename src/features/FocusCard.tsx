@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CardHeader from "../components/CardHeader";
 
 /** 专注模式：免打扰遮罩提示 + 专注计时（卸载即停） */
 export default function FocusCard() {
@@ -14,24 +15,27 @@ export default function FocusCard() {
   }, [on, left]);
 
   return (
-    <div className="text-center space-y-2 py-2">
-      <div className="text-[12px] font-bold">🎯 专注模式 {on && <span className="text-emerald-600">· 免打扰中</span>}</div>
-      <div className={`text-5xl font-black ${on ? "text-violet-600" : ""}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-        {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}
-      </div>
-      {!on && (
-        <div className="flex justify-center gap-1.5">
-          {[15, 25, 40].map((m) => (
-            <button key={m} onClick={() => { setMins(m); setLeft(m * 60); }}
-              className={`text-[11px] px-3 py-1.5 rounded-full font-bold ${mins === m ? "bg-violet-600 text-white" : "bg-black/5 dark:bg-white/10"}`}>{m} 分钟</button>
-          ))}
+    <div className="space-y-3">
+      <CardHeader icon="focus" title="专注模式"
+        right={on ? <span className="cb-chip bg-emerald-500/15 text-emerald-600">免打扰中</span> : undefined} />
+      <div className={`text-center py-4 rounded-3xl border transition-colors ${on ? "bg-violet-500/[0.08] border-violet-500/20" : "bg-gradient-to-b from-white/80 to-white/40 dark:from-white/[0.07] dark:to-white/[0.02] border-black/5 dark:border-white/10"}`}>
+        <div className={`text-[52px] leading-none font-black tracking-tight ${on ? "text-violet-600 dark:text-violet-400" : "text-neutral-900 dark:text-white"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+          {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}
         </div>
-      )}
+        {!on && (
+          <div className="mt-3 flex justify-center gap-1.5">
+            {[15, 25, 40].map((m) => (
+              <button key={m} onClick={() => { setMins(m); setLeft(m * 60); }}
+                className={`text-[11px] px-3 py-1.5 rounded-full font-bold transition-all ${mins === m ? "bg-violet-600 text-white shadow-sm shadow-violet-600/25" : "bg-black/[0.04] dark:bg-white/[0.07] text-neutral-500"}`}>{m} 分钟</button>
+            ))}
+          </div>
+        )}
+      </div>
       <button onClick={() => { if (!on) setLeft(mins * 60); setOn(!on); }}
-        className={`text-[13px] px-6 py-2 rounded-full font-bold ${on ? "bg-neutral-400 text-white" : "bg-violet-600 text-white"}`}>
+        className={`w-full text-[13px] py-2.5 rounded-2xl font-bold text-white active:scale-[0.99] transition-all ${on ? "bg-neutral-400 hover:bg-neutral-500" : "bg-violet-600 hover:bg-violet-700 shadow-sm shadow-violet-600/25"}`}>
         {on ? "结束专注" : "开始专注"}
       </button>
-      <div className="text-[10px] text-neutral-400">专注期间建议固定窗口并保持置顶，不弹窗不抢焦点</div>
+      <div className="text-[10px] text-neutral-400 text-center">专注期间建议固定窗口并保持置顶，不弹窗不抢焦点</div>
     </div>
   );
 }

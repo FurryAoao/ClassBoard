@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
+import { UiIcon } from "../components/icons";
+import CardHeader from "../components/CardHeader";
 
 /** 随机点名 / 分组 */
 export default function PickerCard() {
@@ -25,21 +27,21 @@ export default function PickerCard() {
 
   return (
     <div className="space-y-2">
-      <div className="text-[12px] font-bold">🎲 随机点名 <span className="font-normal text-neutral-400">· {names.length} 人</span></div>
-      <div className="min-h-[76px] flex items-center justify-center rounded-2xl bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/10">
+      <CardHeader icon="picker" title="随机点名" sub={`${names.length} 人`} />
+      <div className="min-h-[84px] flex items-center justify-center rounded-3xl bg-gradient-to-b from-white/80 to-white/40 dark:from-white/[0.07] dark:to-white/[0.02] border border-black/5 dark:border-white/10 px-3">
         {result === null ? <span className="text-[12px] text-neutral-400">点击下方点名</span>
           : Array.isArray(result) ? (
             <div className="flex flex-wrap gap-1.5 p-2 justify-center">
-              {result.map((g, i) => <span key={i} className="text-[11px] px-2 py-1 rounded-full bg-sky-500/15">{g}</span>)}
+              {result.map((g, i) => <span key={i} className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300">{g}</span>)}
             </div>
-          ) : <span className={`text-2xl font-black ${rolling ? "animate-pulse" : "animate-pop-in"}`}>{result}</span>}
+          ) : <span className={`text-3xl font-black tracking-tight text-neutral-900 dark:text-white ${rolling ? "animate-pulse" : "animate-pop-in"}`}>{result}</span>}
       </div>
       {groups}
       <div className="flex gap-2">
-        <button onClick={pick} disabled={!names.length || rolling} className="flex-1 text-[13px] py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black font-bold disabled:opacity-40">🎲 点一名</button>
-        <div className="flex items-center gap-1 text-[11px]">
-          <input type="number" min={2} value={groupN} onChange={(e) => setGroupN(Number(e.target.value))} className="w-11 px-1.5 py-2 rounded-xl bg-black/5 dark:bg-black/30 outline-none text-center" />
-          <button className="px-2.5 py-2 rounded-xl bg-black/5 dark:bg-white/10 font-bold"
+        <button onClick={pick} disabled={!names.length || rolling} className="cb-btn-primary flex-1 !py-2.5 !text-[13px]">点一名</button>
+        <div className="flex items-center gap-1.5">
+          <input type="number" min={2} value={groupN} onChange={(e) => setGroupN(Number(e.target.value))} className="w-11 px-1 py-2.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] outline-none text-center text-[12px]" />
+          <button className="cb-btn-ghost"
             onClick={() => {
               const arr = [...names].sort(() => Math.random() - 0.5);
               const n = Math.max(2, groupN);
@@ -49,11 +51,11 @@ export default function PickerCard() {
       </div>
       <textarea value={names.join("\n")} onChange={(e) => setNames(e.target.value.split(/[\n,，、\s]+/).map((s) => s.trim()).filter(Boolean))}
         placeholder="粘贴全班名单（一行一人，也可用逗号/空格分隔），自动保存" rows={3}
-        className="w-full text-[12px] p-2.5 rounded-xl bg-black/5 dark:bg-black/30 outline-none resize-none" />
+        className="cb-input resize-none !py-2.5" />
       <div className="flex gap-1.5">
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="单个添加姓名" className="flex-1 text-[12px] px-3 py-2 rounded-xl bg-black/5 dark:bg-black/30 outline-none" />
-        <button className="text-[12px] px-3 rounded-xl bg-sky-500 text-white font-bold" onClick={() => { if (draft.trim()) { setNames([...names, draft.trim()]); setDraft(""); } }}>＋</button>
-        <button className="text-[11px] px-2.5 rounded-xl bg-black/5 dark:bg-white/10" onClick={() => { setNames([]); setResult(null); }}>清空</button>
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="单个添加姓名" className="cb-input" />
+        <button className="cb-btn-accent !px-3.5 flex items-center" onClick={() => { if (draft.trim()) { setNames([...names, draft.trim()]); setDraft(""); } }}><UiIcon k="plus" size={13} /></button>
+        <button className="cb-btn-ghost" onClick={() => { setNames([]); setResult(null); }}>清空</button>
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 import { useSettings } from "../store/useSettings";
 import { FEATURE_META, FEATURE_ORDER } from "../lib/utils";
+import { FeatureIcon, UiIcon } from "./icons";
+import { FEATURE_TINT } from "./CardHeader";
 import SettingsView from "./SettingsView";
 import ClockCard from "../features/ClockCard";
 import BoardCard from "../features/BoardCard";
@@ -29,7 +31,6 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
   const visible = FEATURE_ORDER.filter((k) => enabled[k]);
 
   const renderFeature = () => {
-    // 关闭功能后不加载、不显示、不运行：只挂载 enabled 的
     if (view === "settings") return <SettingsView />;
     switch (activeFeature) {
       case "clock": return enabled.clock ? <ClockCard /> : <EmptyHint />;
@@ -53,41 +54,46 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
 
   return (
     <div
-      className="glass no-drag rounded-3xl flex flex-col overflow-hidden animate-pop-in text-neutral-800 dark:text-neutral-100"
+      className="glass no-drag rounded-[22px] flex flex-col overflow-hidden animate-pop-in text-neutral-800 dark:text-neutral-100"
       style={{ width, height: height - 8 }}
     >
       {/* 标题栏：可拖拽区 */}
       <div
-        className="drag-region flex items-center gap-2 px-3 pt-2.5 pb-2 cursor-move shrink-0"
+        className="drag-region flex items-center gap-2 pl-3 pr-2.5 pt-2.5 pb-2 cursor-move shrink-0"
         onMouseDown={(e) => { if (e.button === 0 && !(e.target as HTMLElement).closest("button")) startDrag(); }}
       >
-        <span className="text-base">🎓</span>
-        <span className="text-[13px] font-bold tracking-wide">ClassBoard</span>
-        <span className="text-[10px] text-neutral-400">单悬窗 · 不打扰</span>
+        <span className="w-6 h-6 rounded-[8px] bg-neutral-900 dark:bg-white text-white dark:text-black flex items-center justify-center shrink-0">
+          <UiIcon k="logo" size={14} />
+        </span>
+        <span className="text-[13px] font-bold tracking-tight">ClassBoard</span>
+        <span className="text-[10px] text-neutral-400 font-medium">单悬窗 · 不打扰</span>
         <div className="flex-1" />
         <button title={pinned ? "取消固定" : "固定展开"} onClick={() => setPinned(!pinned)}
-          className={`no-drag text-xs px-2 py-1 rounded-full ${pinned ? "bg-amber-400/80 text-black" : "bg-black/5 dark:bg-white/10"}`}>📌</button>
+          className={`no-drag w-7 h-7 rounded-full flex items-center justify-center transition-all ${pinned ? "bg-amber-400 text-black shadow-sm shadow-amber-400/40" : "text-neutral-400 hover:bg-black/[0.05] dark:hover:bg-white/10"}`}><UiIcon k="pin" size={13} /></button>
         <button title="设置" onClick={() => setView(view === "settings" ? "feature" : "settings")}
-          className={`no-drag text-xs px-2 py-1 rounded-full ${view === "settings" ? "bg-sky-500 text-white" : "bg-black/5 dark:bg-white/10"}`}>⚙️</button>
+          className={`no-drag w-7 h-7 rounded-full flex items-center justify-center transition-all ${view === "settings" ? "bg-sky-500 text-white shadow-sm shadow-sky-500/40" : "text-neutral-400 hover:bg-black/[0.05] dark:hover:bg-white/10"}`}><UiIcon k="gear" size={13} /></button>
         <button title="收起 (Esc)" onClick={onCollapse}
-          className="no-drag text-xs px-2 py-1 rounded-full bg-black/5 dark:bg-white/10">—</button>
+          className="no-drag w-7 h-7 rounded-full flex items-center justify-center text-neutral-400 hover:bg-black/[0.05] dark:hover:bg-white/10 transition-all"><UiIcon k="minus" size={13} /></button>
       </div>
 
       {/* 标签栏：只显示已开启功能的入口（关闭即隐藏） */}
-      {view !== "settings" && (
+      {view !== "settings" && visible.length > 0 && (
         <div className="flex gap-1.5 px-3 pb-2 overflow-x-auto shrink-0">
           {visible.map((k) => (
             <button
               key={k}
               title={FEATURE_META[k].desc}
               onClick={() => openFeature(k)}
-              className={`shrink-0 text-[11px] px-2.5 py-1.5 rounded-full border transition-all ${
+              className={`shrink-0 flex items-center gap-1.5 text-[11px] pl-1.5 pr-2.5 py-1.5 rounded-full font-bold transition-all active:scale-[0.97] ${
                 activeFeature === k
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-black border-transparent font-bold"
-                  : "bg-white/40 dark:bg-white/5 border-black/5 dark:border-white/10 hover:scale-105"
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-black shadow-sm"
+                  : "bg-black/[0.04] dark:bg-white/[0.06] text-neutral-600 dark:text-neutral-300 hover:bg-black/[0.07] dark:hover:bg-white/[0.1]"
               }`}
             >
-              {FEATURE_META[k].icon} {FEATURE_META[k].name}
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center ${activeFeature === k ? "bg-white/20 dark:bg-black/10" : FEATURE_TINT[k]}`}>
+                <FeatureIcon k={k} size={11} />
+              </span>
+              {FEATURE_META[k].name}
             </button>
           ))}
         </div>
@@ -98,9 +104,9 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
         {renderFeature()}
       </div>
 
-      <div className="px-3 pb-2 text-[10px] text-neutral-400 dark:text-neutral-500 shrink-0 flex justify-between">
+      <div className="px-3.5 pb-2.5 pt-1 text-[10px] text-neutral-400 dark:text-neutral-500 shrink-0 flex justify-between border-t border-black/[0.04] dark:border-white/[0.06]">
         <span>悬停展开 · 移出收起 · Alt+Space 唤起 · 可拖拽</span>
-        <span>{visible.length} 功能开</span>
+        <span className="font-bold">{visible.length} 功能开</span>
       </div>
     </div>
   );
@@ -109,9 +115,9 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
 function EmptyHint() {
   const { setView } = useSettings();
   return (
-    <div className="text-center text-xs text-neutral-500 py-10">
-      该功能已关闭，数据已保留。<br />
-      <button className="mt-2 px-3 py-1.5 rounded-full bg-sky-500 text-white" onClick={() => setView("settings")}>
+    <div className="text-center py-12">
+      <div className="text-[12px] text-neutral-500">该功能已关闭，数据已保留</div>
+      <button className="mt-3 px-4 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-[12px] font-bold transition-colors" onClick={() => setView("settings")}>
         去设置中开启
       </button>
     </div>

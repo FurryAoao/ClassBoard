@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
 import { uid, isTauri } from "../lib/utils";
+import { UiIcon } from "../components/icons";
+import CardHeader from "../components/CardHeader";
 
 interface Link { id: string; name: string; target: string; kind: "file" | "web"; }
 
@@ -21,24 +23,21 @@ export default function ShortcutsCard() {
 
   return (
     <div className="space-y-2">
-      <div className="text-[12px] font-bold">🔗 快捷方式 <span className="font-normal text-neutral-400">· 文件/文件夹/网址</span></div>
+      <CardHeader icon="shortcuts" title="快捷方式" sub="文件 / 网址" />
       <div className="grid grid-cols-2 gap-2">
         {links.map((l) => (
-          <div key={l.id} className="flex items-center gap-1.5 px-2.5 py-2 rounded-2xl bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/10">
-            <button className="flex-1 text-left text-[12px] font-bold truncate" title={l.target} onClick={() => open(l)}>
-              {l.kind === "web" ? "🌐" : "📁"} {l.name}
-            </button>
-            <button className="text-neutral-400 hover:text-red-500" onClick={() => setLinks(links.filter((x) => x.id !== l.id))}>✕</button>
+          <div key={l.id} className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] hover:border-black/10 transition-colors">
+            <span className="text-neutral-400 shrink-0"><UiIcon k={l.kind === "web" ? "globe" : "file"} size={13} /></span>
+            <button className="flex-1 text-left text-[12px] font-bold truncate text-neutral-800 dark:text-neutral-100" title={l.target} onClick={() => open(l)}>{l.name}</button>
+            <button className="cb-icon-btn !w-5 !h-5" onClick={() => setLinks(links.filter((x) => x.id !== l.id))}><UiIcon k="x" size={10} /></button>
           </div>
         ))}
-        {links.length === 0 && <div className="col-span-2 text-center text-[11px] text-neutral-400 py-4">还没有快捷方式，在下方添加</div>}
+        {links.length === 0 && <div className="col-span-2 cb-empty">还没有快捷方式，在下方添加</div>}
       </div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="名称，如：三年二班课件"
-        className="w-full text-[12px] px-3 py-2 rounded-xl bg-black/5 dark:bg-black/30 outline-none" />
-      <div className="flex gap-2">
-        <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="路径或网址 https://…"
-          className="flex-1 text-[12px] px-3 py-2 rounded-xl bg-black/5 dark:bg-black/30 outline-none" />
-        <button className="text-[12px] px-3 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black font-bold"
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="名称，如：三年二班课件" className="cb-input" />
+      <div className="flex gap-1.5">
+        <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="路径或网址 https://…" className="cb-input" />
+        <button className="cb-btn-primary"
           onClick={() => {
             if (!name.trim() || !target.trim()) return;
             setLinks([...links, { id: uid(), name: name.trim(), target: target.trim(), kind: /^https?:/i.test(target) ? "web" : "file" }]);
