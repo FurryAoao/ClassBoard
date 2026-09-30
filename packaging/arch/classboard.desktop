@@ -1,10 +1,15 @@
 [Desktop Entry]
 Type=Application
+Version=1.0
 Name=ClassBoard
 GenericName=Teaching Assistant
 Comment=师者屏隅轻辅，悬停即启，一窗百用，默认唯时，诸能可择。
-Exec=classboard
+Exec=/usr/bin/classboard
 Icon=classboard
+StartupWMClass=classboard
 Categories=Education;
+Keywords=teaching;class;board;
 StartupNotify=false
 Terminal=false
+NoDisplay=false
+X-GNOME-UsesNotifications=false
