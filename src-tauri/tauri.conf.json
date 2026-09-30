@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ClassBoard",
+  "version": "0.1.0",
+  "identifier": "com.classboard.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "ClassBoard",
+        "url": "/",
+        "width": 208,
+        "height": 56,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "resizable": false,
+        "skipTaskbar": true,
+        "shadow": false,
+        "focus": false,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.icns", "icons/icon.ico"],
+    "category": "Education",
+    "shortDescription": "师者屏隅轻辅，悬停即启",
+    "longDescription": "师者屏隅轻辅，悬停即启，一窗百用，默认唯时，诸能可择。"
+  },
+  "plugins": {
+    "sql": {
+      "preload": ["sqlite:classboard.db"]
+    }
+  }
+}

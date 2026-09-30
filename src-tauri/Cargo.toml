@@ -1,0 +1,21 @@
+[package]
+name = "classboard"
+version = "0.1.0"
+description = "师者屏隅轻辅，悬停即启，一窗百用，默认唯时，诸能可择。"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-sql = { version = "2" }
+tauri-plugin-opener = { version = "2" }
+tauri-plugin-global-shortcut = { version = "2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = "0.4"
+
+[features]
+default = [ "custom-protocol" ]
+custom-protocol = [ "tauri/custom-protocol" ]
