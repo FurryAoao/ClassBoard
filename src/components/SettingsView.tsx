@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSettings } from "../store/useSettings";
 import { FEATURE_META, FEATURE_ORDER, isTauri } from "../lib/utils";
 import { FeatureIcon, UiIcon } from "./icons";
@@ -10,6 +10,11 @@ export default function SettingsView() {
   const [msg, setMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const onCount = FEATURE_ORDER.filter((k) => enabled[k]).length;
+  const [autoOn, setAutoOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!isTauri()) { setAutoOn(false); return; }
+    import("@tauri-apps/plugin-autostart").then(({ isEnabled }) => isEnabled().then(setAutoOn).catch(() => setAutoOn(false)));
+  }, []);
 
   const downloadFile = async () => {
     const j = await exportAll();
@@ -61,6 +66,31 @@ export default function SettingsView() {
         }}>只留时钟</button>
       </div>
       <div className="text-[10px] text-neutral-400 px-0.5 -mt-1">关闭后隐藏入口 / 停止任务 / 保留数据</div>
+      <label className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
+        <span className="w-7 h-7 rounded-[10px] flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <UiIcon k="logo" size={15} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[12px] font-bold text-neutral-800 dark:text-neutral-100">开机自启</span>
+          <span className="block text-[10px] text-neutral-400 truncate">教师机每天重启，开机即回右下角{isTauri() ? "" : "（桌面端可用）"}</span>
+        </span>
+        <button
+          onClick={async (e) => {
+            e.preventDefault();
+            if (!isTauri()) { setMsg("浏览器预览不支持，桌面端可用"); return; }
+            try {
+              const m = await import("@tauri-apps/plugin-autostart");
+              if (autoOn) await m.disable(); else await m.enable();
+              setAutoOn(!autoOn);
+              setMsg(autoOn ? "已关闭开机自启" : "已开启开机自启");
+            } catch { setMsg("系统不支持开机自启"); }
+          }}
+          className={`w-10 h-[22px] rounded-full relative transition-colors shrink-0 ${autoOn ? "bg-emerald-500" : "bg-neutral-300 dark:bg-neutral-600"}`}
+          title={autoOn ? "点击关闭" : "点击开启"}
+        >
+          <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${autoOn ? "left-[20px]" : "left-[2px]"}`} />
+        </button>
+      </label>
       <div className="space-y-1.5">
         {FEATURE_ORDER.map((k) => (
           <label key={k} className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] cursor-pointer hover:border-black/10 dark:hover:border-white/15 transition-colors">

@@ -114,7 +114,8 @@ export const useSettings = create<SettingsState>((set, get) => ({
     dump.ui = { activeFeature: get().activeFeature, pinned: get().pinned };
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k?.startsWith("cb:")) {
+      // 白板位图 base64 太大，不进 JSON 备份（画布本机仍保留）
+      if (k?.startsWith("cb:") && k !== "cb:board:img") {
         try { dump[k] = JSON.parse(localStorage.getItem(k)!); }
         catch { dump[k] = localStorage.getItem(k); }
       }

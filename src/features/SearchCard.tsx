@@ -43,7 +43,9 @@ export default function SearchCard() {
         const k = localStorage.key(i)!;
         if (!k.startsWith("cb:")) continue;
         if (k === "cb:enabled" || k === "cb:ui") continue;
+        if (k === "cb:board:img") continue; // 白板位图不进搜索
         const v = localStorage.getItem(k) ?? "";
+        if (v.length > 4000) continue; // 超大值（二进制/位图）跳过
         if (v.toLowerCase().includes(query)) {
           const short = k.replace("cb:", "");
           const go = KEY2FEATURE.find(([re]) => re.test(short))?.[1] ?? "search";

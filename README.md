@@ -9,7 +9,7 @@
 - ✅ 设置在同一窗口内：标题栏 ⚙️ → `SettingsView` 同窗切换
 - ✅ 关闭功能后：隐藏入口（标签栏 `visible = enabled` 过滤）＋ 停止后台任务（组件卸载清 `setInterval`）＋ 保留数据（SQLite `kv` + localStorage 双存）
 - ✅ 开启后出现在同一悬停窗口内：`openFeature()` 同窗 `view=feature` 切换
-- ✅ 收起为右下角小胶囊（208×56 显示时间）；悬停展开 368×560；移出收起；📌 可固定；标题栏可拖拽；`Alt+Space` / `Esc` 唤起收起
+- ✅ 收起为右下角小胶囊（232×56 显示时间）；悬停展开 368×560；移出收起；📌 可固定；标题栏可拖拽；`Alt+Space` / `Esc` 唤起收起
 - ✅ 深浅色跟随系统（`prefers-color-scheme` + Tailwind `darkMode: media`）、圆角 3xl、毛玻璃 `.glass`、pop/slide 动画、不抢焦点（`focus:false` + `alwaysOnTop` + `skipTaskbar`）、不打扰
 - ✅ 本地优先：`tauri-plugin-sql` (`sqlite:classboard.db` 表 `kv`) + localStorage 兜底；设置页可导出/导入全量 JSON，不登录不联网
 
@@ -31,7 +31,7 @@
 | 剪贴板历史 | `ClipboardCard.tsx` | 手动收藏 ≤30 条（轻量不常驻监听） |
 | 天气/小部件 | `WeatherCard.tsx` | 手动记录 + 备忘，不强制联网 |
 | 多屏/投屏控制 | `DisplayCard.tsx` | 镜像/扩展/停止 + 显示器检测 |
-| 插件扩��� | `PluginsCard.tsx` | 自定义文本小部件 |
+| 插件扩展 | `PluginsCard.tsx` | 自定义文本小部件 |
 
 ## 运行
 
@@ -47,7 +47,7 @@ npm run tauri:build  # 三平台打包（Windows .exe / Linux .AppImage/.deb / m
 
 ## 验收对照
 
-1. 三平台可运行：Tauri 2 + `bundle.targets=all`，图标 `src-tauri/icons/` 已生成，無平台相关代码。
+1. 三平台可运行：Tauri 2 + `bundle.targets=all`，图标 `src-tauri/icons/` 已生成；Wayland 定位交由 KWin（见 main.rs 注释）。
 2. 单悬停窗口默认只有时钟：窗口唯一；`DEFAULTS` 仅时钟开；收起胶囊只显示时间。
 3. 设置开关 → 同窗出现：`SettingsView` 开关 → `ExpandedPanel` 标签栏即时增减 → 内容区同窗切换。
 4. 深浅色/圆角/动画/悬停正常：`index.css` glass + media 深色 + keyframes；`App.tsx` mouseEnter/Leave + pinned 逻辑。
