@@ -1,0 +1,41 @@
+# Maintainer: FurryAoao <mcofprc@outlook.com>
+# 在 Arch 上本地编译 ClassBoard（Tauri 对各发行版的系统 webkit 要求不同，
+# 本地编译是最稳的；Ubuntu 打的 AppImage 在 Arch 上常因缺库跑不起来）
+pkgname=classboard-git
+_pkgname=ClassBoard
+pkgver=0.1.0.r0
+pkgrel=1
+pkgdesc="师者屏隅轻辅，悬停即启，一窗百用，默认唯时，诸能可择。"
+arch=('x86_64')
+url="https://github.com/FurryAoao/ClassBoard"
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libappindicator-gtk3' 'librsvg' 'openssl' 'cairo' 'pango' 'libsoup3')
+makedepends=('git' 'rust' 'cargo' 'nodejs' 'npm')
+provides=('classboard')
+conflicts=('classboard')
+source=("git+https://github.com/FurryAoao/ClassBoard.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$_pkgname"
+  printf "0.1.0.r%s" "$(git rev-list --count HEAD)"
+}
+
+build() {
+  cd "$_pkgname"
+  npm ci
+  npm run build
+  cd src-tauri
+  # 注意：tauri 的 generate_context!() 编译期就要读到 ../dist，
+  # 所以必须先 npm run build，顺序不能反
+  cargo build --release
+}
+
+package() {
+  cd "$_pkgname"
+  install -Dm755 "src-tauri/target/release/classboard" "$pkgdir/usr/bin/classboard"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 src-tauri/icons/32x32.png "$pkgdir/usr/share/icons/hicolor/32x32/apps/classboard.png"
+  install -Dm644 src-tauri/icons/128x128.png "$pkgdir/usr/share/icons/hicolor/128x128/apps/classboard.png"
+  install -Dm644 packaging/arch/classboard.desktop "$pkgdir/usr/share/applications/classboard.desktop"
+}

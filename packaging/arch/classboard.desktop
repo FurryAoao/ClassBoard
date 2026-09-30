@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ClassBoard
+GenericName=Teaching Assistant
+Comment=师者屏隅轻辅，悬停即启，一窗百用，默认唯时，诸能可择。
+Exec=classboard
+Icon=classboard
+Categories=Education;
+StartupNotify=false
+Terminal=false

@@ -2,8 +2,15 @@
 
 use tauri::{LogicalPosition, LogicalSize, Manager};
 
-/// 右下角定位：主屏尺寸 - 窗口尺寸 - 边距（逻辑像素，Tauri 自动换算物理像素）
+/// Wayland 下合成器不允许客户端随意定位窗口（set_position 经常被忽略），
+/// 所以定位只是“尽力而为”的提示：X11 / Windows / macOS 上精确吸附右下角；
+/// Wayland 上窗口出现在哪由 KWin 决定，用户首次拖一次即可，位置会被记住。
 fn dock_bottom_right(window: &tauri::WebviewWindow, width: f64, height: f64) {
+    // Wayland：跳过程序定位，避免与 KWin 规则打架
+    #[cfg(target_os = "linux")]
+    if std::env::var("WAYLAND_DISPLAY").is_ok() {
+        return;
+    }
     if let Ok(Some(monitor)) = window.primary_monitor() {
         let msize = monitor.size();
         let scale = monitor.scale_factor();
