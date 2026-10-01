@@ -19,6 +19,9 @@ interface SettingsState {
   importAll: (json: string) => Promise<void>;
 }
 
+/** 备份格式版本：发版时如改备份结构，在此 +1 并在 importAll 加迁移分支 */
+export const BACKUP_VERSION = 1;
+
 const DEFAULTS: Record<FeatureKey, boolean> = {
   clock: true,
   board: false,
@@ -110,12 +113,17 @@ export const useSettings = create<SettingsState>((set, get) => ({
   setExpanded: (expanded) => set({ expanded }),
   exportAll: async () => {
     const dump: Record<string, unknown> = {};
+    // 备份元信息：导入时做版本兼容判断（旧备份无此字段，按 legacy 处理）
+    dump.app = "ClassBoard";
+    dump.version = BACKUP_VERSION;
+    dump.exportedAt = new Date().toISOString();
     dump.enabled = get().enabled;
     dump.ui = { activeFeature: get().activeFeature, pinned: get().pinned };
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      // 白板位图 base64 太大，不进 JSON 备份（画布本机仍保留）
-      if (k?.startsWith("cb:") && k !== "cb:board:img") {
+      // 白板位图 base64 太大，不进 JSON 备份（画布本机仍保留）；
+      // 窗口位置是本机相关的，不进备份（换机器导入不会飞出屏幕）
+      if (k?.startsWith("cb:") && k !== "cb:board:img" && k !== "cb:pos") {
         try { dump[k] = JSON.parse(localStorage.getItem(k)!); }
         catch { dump[k] = localStorage.getItem(k); }
       }
@@ -123,10 +131,19 @@ export const useSettings = create<SettingsState>((set, get) => ({
     return JSON.stringify(dump, null, 2);
   },
   importAll: async (json) => {
-    const dump = JSON.parse(json);
+    let dump: any;
+    try { dump = JSON.parse(json); } catch { throw new Error("文件不是有效的 JSON 备份"); }
+    if (!dump || typeof dump !== "object" || Array.isArray(dump)) throw new Error("不是有效的 ClassBoard 备份");
+    const keys = Object.keys(dump);
+    const hasData = keys.some((k) => k.startsWith("cb:") || k === "enabled" || k === "ui");
+    if (!hasData) throw new Error("备份为空，没有可导入的数据");
+    // 旧版备份（无 version 字段）照常导入；大体积/本机相关键跳过
+    const SKIP = new Set(["cb:board:img", "cb:pos", "cb:app", "cb:version", "cb:exportedAt"]);
     for (const [k, v] of Object.entries(dump)) {
       if (k === "ui" || k === "cb:ui") continue;
+      if (k === "app" || k === "version" || k === "exportedAt") continue;
       const key = k.startsWith("cb:") ? k : `cb:${k}`;
+      if (SKIP.has(key)) continue;
       try { localStorage.setItem(key, typeof v === "string" ? v : JSON.stringify(v)); }
       catch { /* ignore */ }
     }

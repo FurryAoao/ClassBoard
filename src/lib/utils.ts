@@ -31,11 +31,21 @@ export const isTauri = () =>
   typeof window !== "undefined" &&
   ("__TAURI_INTERNALS__" in window || "__TAURI__" in window);
 
+/// 展开/收起同步窗口尺寸。Rust 侧保持右下角锚定（向上/左生长），
+/// 用户拖过的位置不会被拽回屏幕角落。
 export async function syncWindowSize(w: number, h: number) {
   if (!isTauri()) return;
   try {
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("set_window_size", { width: w, height: h });
+  } catch { /* browser preview: ignore */ }
+}
+
+/// 手动吸附回右下角（首次启动无记忆位置时、或用户点“回右下角”时调用）
+export async function dockWindow(w: number, h: number) {
+  if (!isTauri()) return;
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
     await invoke("dock_window", { width: w, height: h });
   } catch { /* browser preview: ignore */ }
 }

@@ -43,7 +43,7 @@ export default function SettingsView() {
       setJson(text);
       await importAll(text);
       setMsg("导入成功，已刷新。");
-    } catch { setMsg("导入失败：文件不是有效的 ClassBoard 备份"); }
+    } catch (e) { setMsg(`导入失败：${e instanceof Error ? e.message : "文件不是有效的 ClassBoard 备份"}`); }
   };
 
   return (
@@ -91,6 +91,32 @@ export default function SettingsView() {
           <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${autoOn ? "left-[20px]" : "left-[2px]"}`} />
         </button>
       </label>
+      <div className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
+        <span className="w-7 h-7 rounded-[10px] flex items-center justify-center shrink-0 bg-sky-500/10 text-sky-600 dark:text-sky-400">
+          <UiIcon k="logo" size={15} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[12px] font-bold text-neutral-800 dark:text-neutral-100">窗口位置</span>
+          <span className="block text-[10px] text-neutral-400 truncate">拖动后自动记住，下次启动回到原位</span>
+        </span>
+        <button
+          onClick={async (e) => {
+            e.preventDefault();
+            try {
+              localStorage.removeItem("cb:pos");
+              if (isTauri()) {
+                const { dockWindow } = await import("../lib/utils");
+                const s = useSettings.getState();
+                await dockWindow(s.expanded ? 368 : 232, s.expanded ? 560 : 56);
+              }
+              setMsg("窗口已回右下角，位置记忆已清除");
+            } catch { setMsg("浏览器预览无需定位"); }
+          }}
+          className="cb-btn-ghost !py-1.5 !px-3 !text-[11px] shrink-0"
+        >
+          回右下角
+        </button>
+      </div>
       <div className="space-y-1.5">
         {FEATURE_ORDER.map((k) => (
           <label key={k} className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] cursor-pointer hover:border-black/10 dark:hover:border-white/15 transition-colors">
@@ -129,7 +155,7 @@ export default function SettingsView() {
         </button>
         <button className="cb-btn-ghost flex-1 !text-[11px]"
           onClick={async () => {
-            try { await importAll(json); setMsg("导入成功，已刷新。"); } catch { setMsg("导入失败：JSON 格式不正确"); }
+            try { await importAll(json); setMsg("导入成功，已刷新。"); } catch (e) { setMsg(`导入失败：${e instanceof Error ? e.message : "JSON 格式不正确"}`); }
           }}>
           从文本框导入
         </button>

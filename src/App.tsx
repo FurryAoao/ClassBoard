@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useSettings } from "./store/useSettings";
-import { syncWindowSize } from "./lib/utils";
+import { syncWindowSize, isTauri } from "./lib/utils";
 import Capsule from "./components/Capsule";
 import ExpandedPanel from "./components/ExpandedPanel";
 
@@ -87,8 +87,38 @@ export default function App() {
         } catch { /* 快捷键被占用时忽略，Alt+Space 仍可用 */ }
       } catch { /* browser preview */ }
     })();
-    syncWindowSize(W_COLLAPSED.w, W_COLLAPSED.h);
-    return () => { window.removeEventListener("keydown", key); clearTimers(); };
+    // 窗口位置记忆：有记忆则恢复上次拖放位置，无记忆则吸附右下角；
+    // 拖动后防抖 500ms 落盘（逻辑像素）。Wayland 下恢复调用无副作用。
+    let unlistenMove: (() => void) | null = null;
+    (async () => {
+      if (!isTauri()) return;
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const win = getCurrentWindow();
+        try {
+          const raw = localStorage.getItem("cb:pos");
+          const o = raw ? JSON.parse(raw) : null;
+          if (o && typeof o.x === "number" && typeof o.y === "number") {
+            await invoke("restore_position", { x: o.x, y: o.y });
+          } else {
+            await invoke("dock_window", { width: W_COLLAPSED.w, height: W_COLLAPSED.h });
+          }
+        } catch { /* 无记忆位置则保持 Rust 侧默认吸附 */ }
+        let saveT: number | null = null;
+        unlistenMove = await win.onMoved(async ({ payload }) => {
+          if (saveT) window.clearTimeout(saveT);
+          saveT = window.setTimeout(async () => {
+            try {
+              const scale = await win.scaleFactor();
+              const sc = scale || 1;
+              localStorage.setItem("cb:pos", JSON.stringify({ x: payload.x / sc, y: payload.y / sc }));
+            } catch { /* ignore */ }
+          }, 500);
+        });
+      } catch { /* browser preview */ }
+    })();
+    return () => { window.removeEventListener("keydown", key); clearTimers(); if (unlistenMove) unlistenMove(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
