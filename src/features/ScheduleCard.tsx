@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { usePersistentState, useNow } from "../lib/store-helpers";
+import { useSettings } from "../store/useSettings";
+import { useLesson } from "../store/useLesson";
 import { weekZh, uid } from "../lib/utils";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
@@ -9,6 +11,8 @@ interface Course { id: string; day: number; start: string; end: string; name: st
 /** 课程表与当前课程：手动 + ICS 文件导入 */
 export default function ScheduleCard() {
   const [courses, setCourses] = usePersistentState<Course[]>("schedule:list", []);
+  const { openFeature } = useSettings();
+  const { activeCourse, startClass, endClass, setFocusOn } = useLesson();
   const [name, setName] = useState(""); const [day, setDay] = useState(1);
   const [start, setStart] = useState("08:00"); const [end, setEnd] = useState("08:45");
   const [room, setRoom] = useState("");
@@ -83,13 +87,29 @@ export default function ScheduleCard() {
       <input ref={fileRef} type="file" accept=".ics,text/calendar" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) importIcs(f); e.target.value = ""; }} />
       {icsMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{icsMsg}</div>}
+      {activeCourse && (
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-violet-600 text-white text-[12px] font-bold shadow-sm shadow-violet-600/30 animate-fade-in">
+          <span className="flex-1 truncate">上课中：{activeCourse.name}{activeCourse.room && ` · ${activeCourse.room}`}</span>
+          <button className="shrink-0 px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/30 text-[11px] font-bold transition-colors" onClick={() => endClass()}>下课</button>
+        </div>
+      )}
       {current ? (
         <div className="px-3 py-2.5 rounded-2xl bg-emerald-500 text-white text-[12px] font-bold animate-fade-in shadow-sm shadow-emerald-500/30">
-          正在上课：{current.name} · {current.start}-{current.end}{current.room && ` · ${current.room}`}
+          <div>正在上课：{current.name} · {current.start}-{current.end}{current.room && ` · ${current.room}`}</div>
+          {(!activeCourse || activeCourse.id !== current.id) && (
+            <button className="mt-1.5 px-3 py-1.5 rounded-full bg-white text-emerald-700 text-[11px] font-black hover:bg-emerald-50 transition-colors"
+              onClick={() => { startClass(current); setFocusOn(false); openFeature("picker"); }}>
+              一键开课 · 跳点名
+            </button>
+          )}
         </div>
       ) : next ? (
         <div className="px-3 py-2.5 rounded-2xl bg-sky-500/12 border border-sky-500/20 text-[12px] font-bold text-sky-700 dark:text-sky-300">
-          下一节 {next.start} · {next.name}{next.room && ` · ${next.room}`}
+          <div>下一节 {next.start} · {next.name}{next.room && ` · ${next.room}`}</div>
+          <button className="mt-1.5 px-3 py-1.5 rounded-full bg-sky-500 text-white text-[11px] font-black hover:bg-sky-600 transition-colors"
+            onClick={() => { startClass(next); setFocusOn(false); openFeature("picker"); }}>
+            提前开课 · 跳点名
+          </button>
         </div>
       ) : (
         <div className="px-3 py-2.5 rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] text-[12px] text-neutral-500">今天{ todayList.length ? "课程已结束" : "没有课程"}</div>

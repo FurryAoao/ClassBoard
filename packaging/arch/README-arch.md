@@ -52,4 +52,4 @@ Wayland 下客户端自己定不了位置（KWin 说了算），这是有意为�
 
 Plasma 默认把 `Alt+Space` 占了（KWin 窗口菜单）。
 系统设置 → 快捷键 → KWin → 把“激活窗口菜单”换个键，
-再在 ClassBoard 里用 `Alt+Space` 唤起；或等 v0.2 换默认唤起键。
+再在 ClassBoard 里用 `Alt+Space` 唤起；v0.3 起也可用备用键 `Ctrl+\``（反引号），无需改 KWin 配置。

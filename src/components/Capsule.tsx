@@ -3,6 +3,7 @@ import { usePersistentState, useNow } from "../lib/store-helpers";
 import { useSettings } from "../store/useSettings";
 import { weekZh } from "../lib/utils";
 import { UiIcon } from "./icons";
+import { useLesson } from "../store/useLesson";
 
 interface Course { id: string; day: number; start: string; end: string; name: string; room: string; }
 interface Todo { id: string; text: string; done: boolean; }
@@ -11,6 +12,7 @@ interface Todo { id: string; text: string; done: boolean; }
 export default function Capsule() {
   const now = useNow(true);
   const { enabled } = useSettings();
+  const { activeCourse, focusOn } = useLesson();
   const [courses] = usePersistentState<Course[]>("schedule:list", []);
   const [todos] = usePersistentState<Todo[]>("todos:list", []);
   const [tick, setTick] = useState(0);
@@ -40,7 +42,12 @@ export default function Capsule() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages.length, current?.id, next?.id, left]);
 
-  const sub = pages[tick % pages.length];
+  const override = focusOn
+    ? `专注中${activeCourse ? ` · ${activeCourse.name}` : ""}`
+    : activeCourse
+      ? `上课中 · ${activeCourse.name}`
+      : null;
+  const sub = override ?? pages[tick % pages.length];
 
   return (
     <div
@@ -55,7 +62,7 @@ export default function Capsule() {
         {hh}:{mm}
       </span>
       <span key={sub} className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400 max-w-[110px] truncate animate-fade-in">
-        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${current ? "bg-emerald-500 animate-pulse" : "bg-sky-500"}`} />
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${focusOn ? "bg-violet-500 animate-pulse" : activeCourse ? "bg-emerald-500 animate-pulse" : current ? "bg-emerald-500 animate-pulse" : "bg-sky-500"}`} />
         <span className="truncate">{sub}</span>
       </span>
     </div>

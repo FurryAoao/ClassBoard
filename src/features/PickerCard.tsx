@@ -2,9 +2,12 @@ import { useMemo, useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
+import { useLesson } from "../store/useLesson";
 
 /** 随机点名 / 分组：不重复点完一轮 + 历史 */
 export default function PickerCard() {
+  const { activeCourse } = useLesson();
+  const [check, setCheck] = usePersistentState<Record<string, string>>("picker:check", {});
   const [names, setNames] = usePersistentState<string[]>("picker:names", []);
   const [draft, setDraft] = useState("");
   const [result, setResult] = useState<string | string[] | null>(null);
@@ -57,6 +60,47 @@ export default function PickerCard() {
           ) : <span className={`text-3xl font-black tracking-tight text-neutral-900 dark:text-white ${rolling ? "animate-pulse" : "animate-pop-in"}`}>{result}</span>}
       </div>
       {groups}
+      {activeCourse && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-violet-600/10 border border-violet-500/25 text-[11px] font-bold text-violet-700 dark:text-violet-300">
+          <span className="flex-1 truncate">上课中：{activeCourse.name} · 点到谁记谁</span>
+          <button className="shrink-0 px-2.5 py-1 rounded-full bg-violet-600 text-white text-[10px] font-black" onClick={() => {
+            const lines = ["\uFEFF姓名,状态"];
+            names.forEach((n) => lines.push(`${n},${check[n] ?? "未点"}`));
+            const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `${activeCourse.name}-考勤-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+          }}>导出考勤 CSV</button>
+        </div>
+      )}
+      {activeCourse && names.length > 0 && (
+        <div className="flex gap-1.5 px-0.5">
+          {(["到", "缺", "假"] as const).map((s) => (
+            <button key={s} className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500" title={`${s}：点下面名单打标记`}>
+              {s} {(Object.values(check).filter((v) => v === s).length) || 0}
+            </button>
+          ))}
+          <button className="ml-auto text-[10px] text-neutral-400 hover:text-red-500" onClick={() => setCheck({})}>清标记</button>
+        </div>
+      )}
+      {activeCourse && names.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto px-0.5">
+          {names.map((n) => (
+            <button key={n} title="点一下循环：未点→到→缺→假→未点" onClick={() => {
+              const order = ["到", "缺", "假"];
+              const cur = check[n];
+              const next = !cur ? order[0] : order.includes(cur) ? (order[(order.indexOf(cur) + 1) % 4] ?? "") : order[0];
+              const c2 = { ...check };
+              if (!next) delete c2[n]; else c2[n] = next;
+              setCheck(c2);
+            }}
+              className={`text-[11px] px-2 py-1 rounded-full font-bold transition-all ${check[n] === "到" ? "bg-emerald-500 text-white" : check[n] === "缺" ? "bg-red-500 text-white" : check[n] === "假" ? "bg-amber-400 text-black" : "bg-black/[0.05] dark:bg-white/10 text-neutral-500"}`}>
+              {n}{check[n] ? `·${check[n]}` : ""}
+            </button>
+          ))}
+        </div>
+      )}
       {picked.length > 0 && !Array.isArray(result) && (
         <div className="flex items-center gap-1.5 px-1">
           <span className="text-[10px] text-neutral-400 flex-1 truncate">已点：{picked.slice(-6).join("、")}{picked.length > 6 ? ` 等 ${picked.length} 人` : ""}</span>

@@ -49,14 +49,23 @@ export default function App() {
 
   // 快捷键 Alt+Space 唤起 / 收起；Esc 收起
   useEffect(() => {
+    const toggle = () => {
+      clearTimers();
+      const s = useSettings.getState();
+      const next = !s.expanded;
+      s.setExpanded(next);
+      syncWindowSize(next ? W_EXPANDED.w : W_COLLAPSED.w, next ? W_EXPANDED.h : W_COLLAPSED.h);
+    };
     const key = (e: KeyboardEvent) => {
+      // 备用唤起键 Ctrl+`：KDE 默认占用 Alt+Space 时用这个
+      if (e.ctrlKey && e.code === "Backquote") {
+        e.preventDefault();
+        toggle();
+        return;
+      }
       if (e.altKey && e.code === "Space") {
         e.preventDefault();
-        clearTimers();
-        const s = useSettings.getState();
-        const next = !s.expanded;
-        s.setExpanded(next);
-        syncWindowSize(next ? W_EXPANDED.w : W_COLLAPSED.w, next ? W_EXPANDED.h : W_COLLAPSED.h);
+        toggle();
       }
       if (e.key === "Escape" && !useSettings.getState().pinned) {
         clearTimers();
@@ -69,14 +78,13 @@ export default function App() {
       try {
         const { register } = await import("@tauri-apps/plugin-global-shortcut");
         await register("Alt+Space", (e: any) => {
-          if (e.state === "Pressed") {
-            clearTimers();
-            const s = useSettings.getState();
-            const next = !s.expanded;
-            s.setExpanded(next);
-            syncWindowSize(next ? W_EXPANDED.w : W_COLLAPSED.w, next ? W_EXPANDED.h : W_COLLAPSED.h);
-          }
+          if (e.state === "Pressed") toggle();
         });
+        try {
+          await register("Ctrl+`", (e: any) => {
+            if (e.state === "Pressed") toggle();
+          });
+        } catch { /* 快捷键被占用时忽略，Alt+Space 仍可用 */ }
       } catch { /* browser preview */ }
     })();
     syncWindowSize(W_COLLAPSED.w, W_COLLAPSED.h);

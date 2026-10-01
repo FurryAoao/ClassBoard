@@ -134,7 +134,7 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
       </div>
 
       <div className="px-3.5 pb-2.5 pt-1 text-[10px] text-neutral-400 dark:text-neutral-500 shrink-0 flex justify-between border-t border-black/[0.04] dark:border-white/[0.06]">
-        <span>悬停展开 · 移出收起 · Alt+Space 唤起 · 可拖拽</span>
+        <span>悬停展开 · 移出收起 · Alt+Space / Ctrl+` 唤起 · 可拖拽</span>
         <span className="font-bold">{visible.length} 功能开</span>
       </div>
     </div>

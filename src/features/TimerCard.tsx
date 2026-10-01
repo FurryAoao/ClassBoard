@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
 import CardHeader from "../components/CardHeader";
+import { useSettings } from "../store/useSettings";
+import { useLesson } from "../store/useLesson";
 
 const LESSON_PRESETS = [
   { label: "导入", mins: 3 },
@@ -12,6 +14,8 @@ const LESSON_PRESETS = [
 
 /** 计时器 / 倒计时：仅挂载时运行，关闭即停；附课堂环节一键模板 */
 export default function TimerCard() {
+  const { openFeature } = useSettings();
+  const { activeCourse, endClass } = useLesson();
   const [mode, setMode] = useState<"up" | "down">("down");
   const [secs, setSecs] = useState(5 * 60);
   const [running, setRunning] = useState(false);
@@ -43,7 +47,7 @@ export default function TimerCard() {
 
   return (
     <div className="space-y-2.5">
-      <CardHeader icon="timer" title="计时器" sub={lesson && mode === "down" ? `环节 · ${lesson}` : mode === "down" ? "倒计时" : "正计时"} />
+      <CardHeader icon="timer" title="计时器" sub={activeCourse ? `上课中 · ${activeCourse.name}` : lesson && mode === "down" ? `环节 · ${lesson}` : mode === "down" ? "倒计时" : "正计时"} />
       <div className="flex p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.07]">
         {(["down", "up"] as const).map((m) => (
           <button key={m} onClick={() => { setMode(m); setRunning(false); setLesson(null); }}
@@ -54,7 +58,17 @@ export default function TimerCard() {
       </div>
       <div className="text-center py-4 rounded-3xl bg-gradient-to-b from-white/80 to-white/40 dark:from-white/[0.07] dark:to-white/[0.02] border border-black/5 dark:border-white/10">
         <div className="text-[52px] leading-none font-black tracking-tight text-neutral-900 dark:text-white" style={{ fontVariantNumeric: "tabular-nums" }}>{mm}:{ss}</div>
-        {secs === 0 && mode === "down" && <div className="mt-1 text-[13px] font-bold text-emerald-600 animate-pulse">时间到{lesson ? ` · ${lesson}结束` : ""}</div>}
+        {secs === 0 && mode === "down" && (
+          <div className="mt-1.5">
+            <div className="text-[13px] font-bold text-emerald-600 animate-pulse">时间到{lesson ? ` · ${lesson}结束` : ""}</div>
+            {activeCourse && (
+              <button className="mt-1.5 px-4 py-1.5 rounded-full bg-violet-600 text-white text-[11px] font-black hover:bg-violet-700 transition-colors"
+                onClick={() => { endClass(); openFeature("schedule"); }}>
+                给 {activeCourse.name} 下课 · 回课表
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {mode === "down" && (
         <div>
