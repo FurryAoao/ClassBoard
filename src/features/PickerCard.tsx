@@ -15,6 +15,8 @@ export default function PickerCard() {
   const [groupN, setGroupN] = useState(4);
   const [picked, setPicked] = usePersistentState<string[]>("picker:picked", []);
   const [fair, setFair] = usePersistentState("picker:fair", true);
+  const [seatMode, setSeatMode] = usePersistentState("picker:seat", false);
+  const [cols, setCols] = usePersistentState("picker:cols", 6);
 
   const remaining = useMemo(() => names.filter((n) => !picked.includes(n)), [names, picked]);
 
@@ -39,6 +41,34 @@ export default function PickerCard() {
     if (!Array.isArray(result) || !result) return null;
     return result as string[];
   }, [result]);
+
+  // 考勤打标循环：未点→到→缺→假→未点
+  const cycleCheck = (n: string) => {
+    const order = ["到", "缺", "假"];
+    const cur = check[n];
+    const next = !cur ? order[0] : order.includes(cur) ? (order[(order.indexOf(cur) + 1) % 4] ?? "") : order[0];
+    const c2 = { ...check };
+    if (!next) delete c2[n]; else c2[n] = next;
+    setCheck(c2);
+  };
+  // 座位点击：上课中考勤打标，非上课中直接点中该学生
+  const onSeatClick = (n: string) => {
+    if (activeCourse) cycleCheck(n);
+    else {
+      setResult(n);
+      if (fair) setPicked((prev) => [...prev, n]);
+    }
+  };
+  const seatColor = (n: string) => {
+    if (activeCourse) {
+      if (check[n] === "到") return "bg-emerald-500 text-white border-emerald-500";
+      if (check[n] === "缺") return "bg-red-500 text-white border-red-500";
+      if (check[n] === "假") return "bg-amber-400 text-black border-amber-400";
+      return "bg-white/70 dark:bg-white/[0.05] text-neutral-700 dark:text-neutral-200 border-black/10 dark:border-white/10";
+    }
+    if (result === n) return "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/30";
+    return "bg-white/70 dark:bg-white/[0.05] text-neutral-700 dark:text-neutral-200 border-black/10 dark:border-white/10";
+  };
 
   return (
     <div className="space-y-2">
@@ -74,6 +104,25 @@ export default function PickerCard() {
           }}>导出考勤 CSV</button>
         </div>
       )}
+      {names.length > 0 && (
+        <div className="flex items-center gap-1.5 px-0.5">
+          <div className="flex p-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.07]">
+            {(["list", "seat"] as const).map((m) => (
+              <button key={m} onClick={() => setSeatMode(m === "seat")}
+                className={`text-[10px] px-2.5 py-1 rounded-full font-bold transition-all ${seatMode === (m === "seat") ? "bg-white dark:bg-white/90 text-neutral-900 shadow" : "text-neutral-500"}`}>
+                {m === "list" ? "名单" : "座位"}
+              </button>
+            ))}
+          </div>
+          {seatMode && (
+            <div className="flex items-center gap-1 ml-auto">
+              <button className="cb-icon-btn !w-5 !h-5" onClick={() => setCols(Math.max(4, (typeof cols === "number" ? cols : 6) - 1))} title="减少列"><UiIcon k="minus" size={10} /></button>
+              <span className="text-[10px] text-neutral-400 font-bold tabular-nums">{typeof cols === "number" ? cols : 6} 列</span>
+              <button className="cb-icon-btn !w-5 !h-5" onClick={() => setCols(Math.min(8, (typeof cols === "number" ? cols : 6) + 1))} title="增加列"><UiIcon k="plus" size={10} /></button>
+            </div>
+          )}
+        </div>
+      )}
       {activeCourse && names.length > 0 && (
         <div className="flex gap-1.5 px-0.5">
           {(["到", "缺", "假"] as const).map((s) => (
@@ -84,22 +133,31 @@ export default function PickerCard() {
           <button className="ml-auto text-[10px] text-neutral-400 hover:text-red-500" onClick={() => setCheck({})}>清标记</button>
         </div>
       )}
-      {activeCourse && names.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto px-0.5">
-          {names.map((n) => (
-            <button key={n} title="点一下循环：未点→到→缺→假→未点" onClick={() => {
-              const order = ["到", "缺", "假"];
-              const cur = check[n];
-              const next = !cur ? order[0] : order.includes(cur) ? (order[(order.indexOf(cur) + 1) % 4] ?? "") : order[0];
-              const c2 = { ...check };
-              if (!next) delete c2[n]; else c2[n] = next;
-              setCheck(c2);
-            }}
-              className={`text-[11px] px-2 py-1 rounded-full font-bold transition-all ${check[n] === "到" ? "bg-emerald-500 text-white" : check[n] === "缺" ? "bg-red-500 text-white" : check[n] === "假" ? "bg-amber-400 text-black" : "bg-black/[0.05] dark:bg-white/10 text-neutral-500"}`}>
-              {n}{check[n] ? `·${check[n]}` : ""}
-            </button>
-          ))}
+      {seatMode && names.length > 0 ? (
+        <div className="space-y-1.5">
+          <div className="mx-auto w-24 text-center text-[10px] font-black tracking-widest text-neutral-400 border border-dashed border-black/15 dark:border-white/15 rounded-lg py-1">讲 台</div>
+          <div className="grid gap-1.5 max-h-56 overflow-y-auto px-0.5" style={{ gridTemplateColumns: `repeat(${typeof cols === "number" ? cols : 6}, minmax(0,1fr))` }}>
+            {names.map((n) => (
+              <button key={n} title={activeCourse ? "点一下循环：未点→到→缺→假→未点" : "点一下选中该学生"}
+                onClick={() => onSeatClick(n)}
+                className={`min-w-0 px-1 py-1.5 rounded-lg border text-[11px] font-bold truncate transition-all active:scale-[0.95] ${seatColor(n)}`}>
+                {n}{activeCourse && check[n] ? `·${check[n]}` : ""}
+              </button>
+            ))}
+          </div>
+          <div className="text-[10px] text-neutral-400 text-center">{activeCourse ? "点座位打考勤（到/缺/假循环）" : "点座位直接选中，非上课模式"}</div>
         </div>
+      ) : (
+        activeCourse && names.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto px-0.5">
+            {names.map((n) => (
+              <button key={n} title="点一下循环：未点→到→缺→假→未点" onClick={() => cycleCheck(n)}
+                className={`text-[11px] px-2 py-1 rounded-full font-bold transition-all ${check[n] === "到" ? "bg-emerald-500 text-white" : check[n] === "缺" ? "bg-red-500 text-white" : check[n] === "假" ? "bg-amber-400 text-black" : "bg-black/[0.05] dark:bg-white/10 text-neutral-500"}`}>
+                {n}{check[n] ? `·${check[n]}` : ""}
+              </button>
+            ))}
+          </div>
+        )
       )}
       {picked.length > 0 && !Array.isArray(result) && (
         <div className="flex items-center gap-1.5 px-1">
