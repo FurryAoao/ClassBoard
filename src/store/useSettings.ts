@@ -78,6 +78,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
   toggleFeature: (k) => {
     const next = { ...get().enabled, [k]: !get().enabled[k] };
     saveEnabled(next);
+    // 关闭课程表 = 下课：清上课态，防胶囊/计时/专注显示“幽灵上课中”
+    if (k === "schedule" && !next[k]) {
+      import("./useLesson").then(({ useLesson }) => useLesson.getState().endClass());
+    }
     // 关闭当前正看的功能 -> 回时钟；只隐藏入口停任务，数据保留
     if (!next[k] && get().activeFeature === k) {
       set({ enabled: next, view: "home", activeFeature: "clock" });

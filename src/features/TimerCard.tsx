@@ -94,7 +94,13 @@ export default function TimerCard() {
         </div>
       )}
       <div className="flex justify-center gap-2">
-        <button onClick={() => setRunning(!running)}
+        <button onClick={() => {
+            // 时间到后点开始 = 按当前设定再来一次，不用先点重置
+            if (!running && mode === "down" && secs === 0) {
+              setSecs((Number(minsInput) || 5) * 60);
+              setRunning(true);
+            } else setRunning(!running);
+          }}
           className={`text-[13px] px-8 py-2.5 rounded-full font-bold text-white shadow-sm active:scale-[0.98] transition-all ${running ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/25"}`}>
           {running ? "暂停" : "开始"}
         </button>

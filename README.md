@@ -1,17 +1,17 @@
-# ClassBoard 🎓 师者屏隅轻辅
+# ClassBoard 师者屏隅轻辅
 
 > 悬停即启，一窗百用，默认唯时，诸能可择。—— **单悬停窗口**，所有功能在同一窗口内卡片/标签/视图切换，不开新窗口
 
 ## 核心规则（已落实）
 
-- ✅ 单悬停窗口：`src-tauri/tauri.conf.json` 只声明 `main` 一个窗口，无其他 `WebviewWindow`/`open` 新窗代码
-- ✅ 首次启动默认只开时钟：`src/store/useSettings.ts` 的 `DEFAULTS` 仅 `clock: true`，其余 14 项全 `false`
-- ✅ 设置在同一窗口内：标题栏 ⚙️ → `SettingsView` 同窗切换
-- ✅ 关闭功能后：隐藏入口（标签栏 `visible = enabled` 过滤）＋ 停止后台任务（组件卸载清 `setInterval`）＋ 保留数据（SQLite `kv` + localStorage 双存）
-- ✅ 开启后出现在同一悬停窗口内：`openFeature()` 同窗 `view=feature` 切换
-- ✅ 收起为右下角小胶囊（232×56 显示时间）；悬停展开 368×560；移出收起；📌 可固定；标题栏可拖拽；`Alt+Space` / `Esc` 唤起收起
-- ✅ 深浅色跟随系统（`prefers-color-scheme` + Tailwind `darkMode: media`）、圆角 3xl、毛玻璃 `.glass`、pop/slide 动画、不抢焦点（`focus:false` + `alwaysOnTop` + `skipTaskbar`）、不打扰
-- ✅ 本地优先：`tauri-plugin-sql` (`sqlite:classboard.db` 表 `kv`) + localStorage 兜底；设置页可导出/导入全量 JSON，不登录不联网
+- 单悬停窗口：`src-tauri/tauri.conf.json` 只声明 `main` 一个窗口，无其他 `WebviewWindow`/`open` 新窗代码
+- 首次启动默认只开时钟：`src/store/useSettings.ts` 的 `DEFAULTS` 仅 `clock: true`，其余 14 项全 `false`
+- 设置在同一窗口内：标题栏设置钮 → `SettingsView` 同窗切换
+- 关闭功能后：隐藏入口（标签栏 `visible = enabled` 过滤）＋ 停止后台任务（组件卸载清 `setInterval`）＋ 保留数据（SQLite `kv` + localStorage 双存）
+- 开启后出现在同一悬停窗口内：`openFeature()` 同窗 `view=feature` 切换
+- 收起为右下角小胶囊（232×56 显示时间）；悬停展开 368×560；移出收起； 可固定；标题栏可拖拽；`Alt+Space` / `Ctrl+\`` 唤起、`Esc` 收起（KDE 占 Alt+Space 时用备用键）
+- 深浅色跟随系统（`prefers-color-scheme` + Tailwind `darkMode: media`）、圆角 3xl、毛玻璃 `.glass`、pop/slide 动画、不抢焦点（`focus:false` + `alwaysOnTop` + `skipTaskbar`）、不打扰
+- 本地优先：`tauri-plugin-sql` (`sqlite:classboard.db` 表 `kv`) + localStorage 兜底；设置页可导出/导入全量 JSON，不登录不联网
 
 ## 15 个可开关功能（`src/features/`）
 
@@ -44,6 +44,22 @@ npm run tauri:build  # 三平台打包（Windows .exe / Linux .AppImage/.deb / m
 ```
 
 > 本机无 Rust 时 `npm run build` 已验证通过（tsc + vite）；`tauri:build` 需在各平台装 Rust 稳定版后执行。
+> 三端构建由 GitHub Actions 自动跑（`build.yml`），每推必建，产物在 Actions 页下载。
+
+## 版本演进
+
+| 版本 | 主题 | 内容 |
+|---|---|---|
+| v0.2 | 课堂闭环 | 单实例（重复启动唤出已有窗口）+ 开机自启（设置页开关）；搜索/备份跳过白板大图 |
+| v0.3 | 上课流 | `useLesson` 共享课堂会话；课表一键开课跳点名；点名考勤打标 + 导出 CSV；计时/专注/胶囊联动；备用唤起键 `Ctrl+\`` |
+| v0.4 | 下课流 | 下课小结（一句话记入待办/小部件，自动跳转）；下一节课间倒计时 |
+| v0.5 | 稳字当头 | 窗口位置记忆（拖后记住，启动恢复）；缩放右下角锚定；备份版本兼容（`app/version/exportedAt`） |
+| v0.6 | 打磨 | 搜索跳过内部键；文档去符号化 + 补全版本记录 |
+
+## 课堂使用流
+
+开课：课表点“一键开课”→ 自动跳点名 → 点到谁记谁（到/缺/假）→ 计时器按环节走（导入/讲授/练习/展示/总结）→ 时间到一键下课回课表 → 写一句话小结 → 记入待办/小部件。
+课间：课表显示下一节课间倒计时。考勤：点名卡“导出考勤 CSV”（Excel 直接认中文）。
 
 ## 验收对照
 
