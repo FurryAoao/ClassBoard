@@ -28,6 +28,11 @@ export default function ScheduleCard() {
   const todayList = useMemo(() => courses.filter((c) => c.day === d).sort((a, b) => a.start.localeCompare(b.start)), [courses, d]);
   const current = useMemo(() => todayList.find((c) => c.start <= t && t <= c.end) ?? null, [todayList, t]);
   const next = useMemo(() => todayList.find((c) => c.start > t) ?? null, [todayList, t]);
+  // 周视图：周一到周日分组，今天高亮
+  const weekGroups = useMemo(
+    () => [0, 1, 2, 3, 4, 5, 6].map((dd) => ({ day: dd, list: courses.filter((c) => c.day === dd).sort((a, b) => a.start.localeCompare(b.start)) })),
+    [courses]
+  );
 
   const importIcs = async (f: File) => {
     try {
@@ -104,7 +109,7 @@ export default function ScheduleCard() {
 
   return (
     <div className="space-y-2">
-      <CardHeader icon="schedule" title="课程表" sub={`今天${weekZh(now.getDay())}`}
+      <CardHeader icon="schedule" title="课程表" sub={`今天${weekZh(now.getDay())} · 本周 ${courses.length} 节`}
         right={
           <button onClick={() => fileRef.current?.click()} title="从 ICS 日历文件导入"
             className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">ICS 导入</button>
@@ -162,16 +167,24 @@ export default function ScheduleCard() {
       ) : (
         <div className="px-3 py-2.5 rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] text-[12px] text-neutral-500">今天{ todayList.length ? "课程已结束" : "没有课程"}</div>
       )}
-      <div className="space-y-1 max-h-36 overflow-y-auto">
-        {courses.map((c) => (
-          <div key={c.id} className="cb-row !py-1.5 text-[11px]">
-            <span className="font-bold text-neutral-700 dark:text-neutral-200">周{["一", "二", "三", "四", "五", "六", "日"][c.day]}</span>
-            <span className="text-neutral-400" style={{ fontVariantNumeric: "tabular-nums" }}>{c.start}-{c.end}</span>
-            <span className="font-bold flex-1 truncate text-neutral-800 dark:text-neutral-100">{c.name}{c.room && <span className="font-normal text-neutral-400"> · {c.room}</span>}</span>
-            <button className="cb-icon-btn !w-5 !h-5" onClick={() => setCourses(courses.filter((x) => x.id !== c.id))}><UiIcon k="x" size={10} /></button>
+      <div className="space-y-1 max-h-44 overflow-y-auto">
+        {courses.length === 0 && <div className="cb-empty !py-3">在下方添加，或点右上 ICS 导入</div>}
+        {weekGroups.map((g) => (
+          <div key={g.day} className={`rounded-xl px-1 ${g.day === d ? "bg-sky-500/[0.06] border border-sky-500/20" : ""}`}>
+            <div className="flex items-center gap-1.5 px-1 pt-1 pb-0.5">
+              <span className={`text-[11px] font-black ${g.day === d ? "text-sky-600 dark:text-sky-400" : "text-neutral-500"}`}>周{["一", "二", "三", "四", "五", "六", "日"][g.day]}</span>
+              {g.day === d && <span className="text-[9px] font-black px-1.5 py-px rounded-full bg-sky-500 text-white">今天</span>}
+              <span className="text-[10px] text-neutral-400">{g.list.length ? `${g.list.length} 节` : "无课"}</span>
+            </div>
+            {g.list.map((c) => (
+              <div key={c.id} className="cb-row !py-1.5 text-[11px]">
+                <span className="text-neutral-400" style={{ fontVariantNumeric: "tabular-nums" }}>{c.start}-{c.end}</span>
+                <span className="font-bold flex-1 truncate text-neutral-800 dark:text-neutral-100">{c.name}{c.room && <span className="font-normal text-neutral-400"> · {c.room}</span>}</span>
+                <button className="cb-icon-btn !w-5 !h-5" onClick={() => setCourses(courses.filter((x) => x.id !== c.id))}><UiIcon k="x" size={10} /></button>
+              </div>
+            ))}
           </div>
         ))}
-        {courses.length === 0 && <div className="cb-empty !py-3">在下方添加，或点右上 ICS 导入</div>}
       </div>
       <div className="flex gap-1.5">
         <select value={day} onChange={(e) => setDay(Number(e.target.value))} className="cb-input !w-auto text-[11px]">

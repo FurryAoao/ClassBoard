@@ -1,25 +1,26 @@
-import { useMemo } from "react";
+import { Suspense, lazy, useMemo } from "react";
 import { useSettings } from "../store/useSettings";
 import { FEATURE_META, FEATURE_ORDER, type FeatureKey } from "../lib/utils";
 import { useNow, usePersistentState } from "../lib/store-helpers";
 import { FeatureIcon, UiIcon } from "./icons";
 import { FEATURE_TINT } from "./CardHeader";
 import SettingsView from "./SettingsView";
-import ClockCard from "../features/ClockCard";
-import BoardCard from "../features/BoardCard";
-import ShortcutsCard from "../features/ShortcutsCard";
-import ScheduleCard from "../features/ScheduleCard";
-import CalendarCard from "../features/CalendarCard";
-import TimerCard from "../features/TimerCard";
-import PickerCard from "../features/PickerCard";
-import TodosCard from "../features/TodosCard";
-import SearchCard from "../features/SearchCard";
-import FocusCard from "../features/FocusCard";
-import CaptureCard from "../features/CaptureCard";
-import ClipboardCard from "../features/ClipboardCard";
-import WeatherCard from "../features/WeatherCard";
-import DisplayCard from "../features/DisplayCard";
-import PluginsCard from "../features/PluginsCard";
+// 功能卡懒加载：首屏只下发外壳，点开哪张才加载哪张，胶囊秒出
+const ClockCard = lazy(() => import("../features/ClockCard"));
+const BoardCard = lazy(() => import("../features/BoardCard"));
+const ShortcutsCard = lazy(() => import("../features/ShortcutsCard"));
+const ScheduleCard = lazy(() => import("../features/ScheduleCard"));
+const CalendarCard = lazy(() => import("../features/CalendarCard"));
+const TimerCard = lazy(() => import("../features/TimerCard"));
+const PickerCard = lazy(() => import("../features/PickerCard"));
+const TodosCard = lazy(() => import("../features/TodosCard"));
+const SearchCard = lazy(() => import("../features/SearchCard"));
+const FocusCard = lazy(() => import("../features/FocusCard"));
+const CaptureCard = lazy(() => import("../features/CaptureCard"));
+const ClipboardCard = lazy(() => import("../features/ClipboardCard"));
+const WeatherCard = lazy(() => import("../features/WeatherCard"));
+const DisplayCard = lazy(() => import("../features/DisplayCard"));
+const PluginsCard = lazy(() => import("../features/PluginsCard"));
 
 async function startDrag() {
   try {
@@ -128,9 +129,11 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
         </div>
       )}
 
-      {/* 内容区：同一窗口内视图切换，不开新窗口 */}
+      {/* 内容区：同一窗口内视图切换，不开新窗口；懒加载卡片 Suspense 兜底 */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 animate-slide-up" key={String(view) + String(activeFeature)}>
-        {renderFeature()}
+        <Suspense fallback={<div className="cb-empty !py-10">加载中…</div>}>
+          {renderFeature()}
+        </Suspense>
       </div>
 
       <div className="px-3.5 pb-2.5 pt-1 text-[10px] text-neutral-400 dark:text-neutral-500 shrink-0 flex justify-between border-t border-black/[0.04] dark:border-white/[0.06]">
