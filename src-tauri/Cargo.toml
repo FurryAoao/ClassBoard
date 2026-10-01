@@ -1,6 +1,6 @@
 [package]
 name = "classboard"
-version = "0.2.0"
+version = "0.4.0"
 description = "师者屏隅轻辅，悬停即启，一窗百用，默认唯时，诸能可择。"
 edition = "2021"
 

@@ -3,6 +3,7 @@ import { usePersistentState, useNow } from "../lib/store-helpers";
 import { useSettings } from "../store/useSettings";
 import { useLesson } from "../store/useLesson";
 import { weekZh, uid } from "../lib/utils";
+import { kvGet, kvSet } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
 
@@ -12,7 +13,9 @@ interface Course { id: string; day: number; start: string; end: string; name: st
 export default function ScheduleCard() {
   const [courses, setCourses] = usePersistentState<Course[]>("schedule:list", []);
   const { openFeature } = useSettings();
-  const { activeCourse, startClass, endClass, setFocusOn } = useLesson();
+  const { activeCourse, lastLesson, dismissLast, startClass, endClass, setFocusOn } = useLesson();
+  const [summary, setSummary] = useState("");
+  const [savedMsg, setSavedMsg] = useState("");
   const [name, setName] = useState(""); const [day, setDay] = useState(1);
   const [start, setStart] = useState("08:00"); const [end, setEnd] = useState("08:45");
   const [room, setRoom] = useState("");
@@ -77,6 +80,28 @@ export default function ScheduleCard() {
     } catch { setIcsMsg("ICS 解析失败"); }
   };
 
+  const saveSummary = async (dest: "todo" | "widget") => {
+    if (!summary.trim() || !lastLesson) return;
+    try {
+      if (dest === "todo") {
+        const raw = await kvGet("todos:list");
+        const list = raw ? JSON.parse(raw) : [];
+        list.push({ id: uid(), text: `【${lastLesson.course.name}小结】${summary.trim()}`, done: false });
+        await kvSet("todos:list", JSON.stringify(list));
+        setSavedMsg("已记入待办，马上跳转…");
+        setTimeout(() => { dismissLast(); setSavedMsg(""); setSummary(""); openFeature("todos"); }, 600);
+      } else {
+        const raw = await kvGet("plugins:widgets");
+        const list = raw ? JSON.parse(raw) : [];
+        list.push({ id: uid(), title: `${lastLesson.course.name}·课堂小结`, body: summary.trim() });
+        await kvSet("plugins:widgets", JSON.stringify(list));
+        setSavedMsg("已记入小部件，马上跳转…");
+        setTimeout(() => { dismissLast(); setSavedMsg(""); setSummary(""); openFeature("plugins"); }, 600);
+      }
+      setSummary("");
+    } catch { setSavedMsg("保存失败，再试一次"); }
+  };
+
   return (
     <div className="space-y-2">
       <CardHeader icon="schedule" title="课程表" sub={`今天${weekZh(now.getDay())}`}
@@ -87,6 +112,22 @@ export default function ScheduleCard() {
       <input ref={fileRef} type="file" accept=".ics,text/calendar" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) importIcs(f); e.target.value = ""; }} />
       {icsMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{icsMsg}</div>}
+      {!activeCourse && lastLesson && (
+        <div className="px-3 py-2.5 rounded-2xl bg-amber-500/[0.08] border border-amber-500/25 space-y-1.5 animate-fade-in">
+          <div className="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">
+            {lastLesson.course.name} 已下课{lastLesson.startedAt ? ` · 本节 ${Math.max(1, Math.round((lastLesson.endedAt - lastLesson.startedAt) / 60000))} 分钟` : ""}
+          </div>
+          <input value={summary} onChange={(e) => setSummary(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void saveSummary("todo"); }}
+            placeholder="一句话记本节要点，回车记入待办" className="cb-input !py-1.5 !text-[11px]" />
+          <div className="flex gap-1.5">
+            <button className="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-black hover:bg-emerald-600 transition-colors" onClick={() => void saveSummary("todo")}>记入待办</button>
+            <button className="px-3 py-1.5 rounded-full bg-black/[0.05] dark:bg-white/10 text-neutral-600 dark:text-neutral-300 text-[11px] font-bold hover:bg-black/[0.09] transition-colors" onClick={() => void saveSummary("widget")}>记入小部件</button>
+            <button className="ml-auto text-[11px] text-neutral-400 hover:text-neutral-600" onClick={() => { dismissLast(); setSummary(""); setSavedMsg(""); }}>关闭</button>
+          </div>
+          {savedMsg && <div className="text-[10px] font-bold text-emerald-600">{savedMsg}</div>}
+        </div>
+      )}
       {activeCourse && (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-violet-600 text-white text-[12px] font-bold shadow-sm shadow-violet-600/30 animate-fade-in">
           <span className="flex-1 truncate">上课中：{activeCourse.name}{activeCourse.room && ` · ${activeCourse.room}`}</span>
@@ -106,6 +147,13 @@ export default function ScheduleCard() {
       ) : next ? (
         <div className="px-3 py-2.5 rounded-2xl bg-sky-500/12 border border-sky-500/20 text-[12px] font-bold text-sky-700 dark:text-sky-300">
           <div>下一节 {next.start} · {next.name}{next.room && ` · ${next.room}`}</div>
+          {!activeCourse && (() => {
+            const [h, m] = next.start.split(":").map(Number);
+            const target = new Date(now); target.setHours(h, m, 0, 0);
+            const diff = Math.max(0, Math.round((target.getTime() - now.getTime()) / 1000));
+            const cd = `${String(Math.floor(diff / 60)).padStart(2, "0")}:${String(diff % 60).padStart(2, "0")}`;
+            return <div className="mt-0.5 text-[11px] font-black tabular-nums">距上课 {cd}</div>;
+          })()}
           <button className="mt-1.5 px-3 py-1.5 rounded-full bg-sky-500 text-white text-[11px] font-black hover:bg-sky-600 transition-colors"
             onClick={() => { startClass(next); setFocusOn(false); openFeature("picker"); }}>
             提前开课 · 跳点名
