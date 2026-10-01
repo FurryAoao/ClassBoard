@@ -88,6 +88,13 @@ export default function ScheduleCard() {
   const saveSummary = async (dest: "todo" | "widget") => {
     if (!summary.trim() || !lastLesson) return;
     try {
+      // 同步记一份到日历当天，方便月底回顾本月上了什么
+      const { fmtDate } = await import("../lib/utils");
+      const todayK = fmtDate(new Date());
+      const rawCal = await kvGet("calendar:events");
+      const cal = rawCal ? JSON.parse(rawCal) : {};
+      cal[todayK] = [...(cal[todayK] ?? []), `【${lastLesson.course.name}】${summary.trim()}`];
+      await kvSet("calendar:events", JSON.stringify(cal));
       if (dest === "todo") {
         const raw = await kvGet("todos:list");
         const list = raw ? JSON.parse(raw) : [];

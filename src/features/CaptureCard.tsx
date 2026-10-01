@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSettings } from "../store/useSettings";
 import CardHeader from "../components/CardHeader";
 import { FeatureIcon } from "../components/icons";
 
@@ -10,6 +11,7 @@ const TIPS: Record<string, string[]> = {
 
 export default function CaptureCard() {
   const [open, setOpen] = useState<"shot" | "rec" | null>(null);
+  const { openFeature } = useSettings();
   const card = (k: "shot" | "rec", title: string, sub: string, accent: string, icon: "capture" | "display") => (
     <div className="rounded-3xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] overflow-hidden">
       <button onClick={() => setOpen(open === k ? null : k)}
@@ -34,8 +36,12 @@ export default function CaptureCard() {
         {card("shot", "系统截图", "点开展开各平台按键", "text-sky-500", "capture")}
         {card("rec", "系统录屏", "点开展开各平台工具", "text-rose-500", "display")}
       </div>
+      <button onClick={() => openFeature("shortcuts")}
+        className="w-full px-3 py-2 rounded-2xl bg-sky-500/[0.08] border border-sky-500/25 text-[11px] font-bold text-sky-700 dark:text-sky-300 hover:bg-sky-500/[0.14] transition-colors">
+        存好的课件目录，去「快捷方式」快速打开
+      </button>
       <div className="text-[10px] text-neutral-400 leading-relaxed px-1">
-        轻量原则：不内置重型录屏引擎，直接用各平台原生能力；存好的课件目录可在「快捷方式」里快速打开。
+        轻量原则：不内置重型录屏引擎，直接用各平台原生能力。
       </div>
     </div>
   );

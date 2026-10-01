@@ -1,12 +1,17 @@
 import { useMemo, useState } from "react";
 import { usePersistentState, useNow } from "../lib/store-helpers";
+import { useSettings } from "../store/useSettings";
 import { fmtDate } from "../lib/utils";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
 
 /** 日历：月视图 + 当日日程 + 本月 agenda */
+interface Course { id: string; day: number; start: string; end: string; name: string; room: string; }
+
 export default function CalendarCard() {
   const now = useNow(true);
+  const { openFeature } = useSettings();
+  const [courses] = usePersistentState<Course[]>("schedule:list", []);
   const [offset, setOffset] = useState(0);
   const [events, setEvents] = usePersistentState<Record<string, string[]>>("calendar:events", {});
   const [draft, setDraft] = useState("");
@@ -24,6 +29,10 @@ export default function CalendarCard() {
   const todayStr = fmtDate(now);
   const [sel, setSel] = useState<string | null>(null);
   const key = sel ?? todayStr;
+  const dayCourses = (dateStr: string) => {
+    const wd = (new Date(dateStr + "T12:00:00").getDay() + 6) % 7;
+    return courses.filter((c) => c.day === wd).sort((a, b) => a.start.localeCompare(b.start));
+  };
   const add = () => { if (!draft.trim()) return; setEvents({ ...events, [key]: [...(events[key] ?? []), draft.trim()] }); setDraft(""); };
 
   const monthKeys = useMemo(() => {
@@ -59,10 +68,17 @@ export default function CalendarCard() {
             const k = fmtDate(new Date(cells.y, cells.m, d));
             const isToday = k === todayStr;
             const has = (events[k]?.length ?? 0) > 0;
+            const hasClass = dayCourses(k).length > 0;
             return (
               <button key={i} onClick={() => setSel(k)}
                 className={`aspect-square text-[11px] rounded-full relative transition-all ${k === key ? "bg-neutral-900 text-white dark:bg-white dark:text-black font-bold shadow" : isToday ? "bg-sky-500/20 font-bold text-sky-700 dark:text-sky-300" : "hover:bg-black/[0.05] dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300"}`}>
-                {d}{has && <span className="absolute bottom-[3px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-500" />}
+                {d}
+                {(has || hasClass) && (
+                  <span className="absolute bottom-[3px] left-1/2 -translate-x-1/2 flex gap-[2px]">
+                    {hasClass && <span className="w-1 h-1 rounded-full bg-emerald-500" />}
+                    {has && <span className="w-1 h-1 rounded-full bg-orange-500" />}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -77,6 +93,13 @@ export default function CalendarCard() {
             </button>
           ))}
         </div>
+      )}
+      {dayCourses(key).length > 0 && (
+        <button onClick={() => openFeature("schedule")}
+          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/25 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/[0.14] transition-colors">
+          <span className="flex-1 truncate text-left">{key} 有 {dayCourses(key).length} 节：{dayCourses(key).map((c) => c.name).join(" / ")}</span>
+          <span className="shrink-0">去课表</span>
+        </button>
       )}
       <div className="text-[11px] font-bold px-1 text-neutral-500">{key} 的日程</div>
       <div className="space-y-1">
