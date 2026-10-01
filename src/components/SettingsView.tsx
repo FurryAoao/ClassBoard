@@ -3,6 +3,29 @@ import { useSettings } from "../store/useSettings";
 import { FEATURE_META, FEATURE_ORDER, isTauri } from "../lib/utils";
 import { FeatureIcon, UiIcon } from "./icons";
 import { FEATURE_TINT } from "./CardHeader";
+import pkg from "../../package.json";
+
+const APP_VERSION: string = pkg.version;
+
+/** 应用内更新日志（与 README 版本演进表同源，保持简短） */
+const CHANGELOG: [string, string][] = [
+  ["v1.0 收官", "快捷键一览 + 关于页，版本号应用内对齐"],
+  ["v0.9 串起来", "日历课表联动、小结同步记入日历、截图直达快捷方式"],
+  ["v0.8 座位表", "点名座位模式，讲台 + 可调列数，上课点座位打考勤"],
+  ["v0.7 周览秒开", "课表周视图，功能卡懒加载，主包减负约两成"],
+  ["v0.6 打磨", "搜索跳过内部键，文档去符号化"],
+  ["v0.5 稳字当头", "窗口位置记忆，缩放锚定，备份版本兼容"],
+  ["v0.4 下课流", "下课小结记入待办/小部件，课间倒计时接下一节"],
+  ["v0.3 上课流", "一键开课串起计时、点名、专注"],
+  ["v0.2 课堂闭环", "单实例运行，开机自启"],
+];
+
+const SHORTCUTS: [string, string][] = [
+  ["唤起 / 展开", "Alt + Space 或 Ctrl + `"],
+  ["收起", "Esc"],
+  ["固定展开", "点右上图钉，鼠标离开不收起"],
+  ["自动展开 / 收起", "悬停 120ms 展开 · 离开 320ms 收起"],
+];
 
 export default function SettingsView() {
   const { enabled, toggleFeature, exportAll, importAll } = useSettings();
@@ -11,6 +34,7 @@ export default function SettingsView() {
   const fileRef = useRef<HTMLInputElement>(null);
   const onCount = FEATURE_ORDER.filter((k) => enabled[k]).length;
   const [autoOn, setAutoOn] = useState<boolean | null>(null);
+  const [showLog, setShowLog] = useState(false);
   useEffect(() => {
     if (!isTauri()) { setAutoOn(false); return; }
     import("@tauri-apps/plugin-autostart").then(({ isEnabled }) => isEnabled().then(setAutoOn).catch(() => setAutoOn(false)));
@@ -136,6 +160,42 @@ export default function SettingsView() {
             </button>
           </label>
         ))}
+      </div>
+
+      <div className="flex items-center gap-2 px-0.5 pt-1">
+        <span className="w-6 h-6 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center"><FeatureIcon k="shortcuts" size={14} /></span>
+        <span className="text-[13px] font-bold tracking-tight">快捷键</span>
+      </div>
+      <div className="cb-panel-card !py-1.5 space-y-0.5">
+        {SHORTCUTS.map(([k, v]) => (
+          <div key={k} className="flex items-center gap-2 text-[11px] py-1">
+            <span className="text-neutral-500 shrink-0">{k}</span>
+            <span className="ml-auto font-mono font-bold text-neutral-800 dark:text-neutral-100 bg-black/[0.05] dark:bg-white/[0.08] px-2 py-0.5 rounded-lg">{v}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 px-0.5 pt-1">
+        <span className="w-6 h-6 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center"><UiIcon k="logo" size={14} /></span>
+        <span className="text-[13px] font-bold tracking-tight">关于</span>
+        <span className="cb-chip bg-sky-500/15 text-sky-600 !text-[10px]">v{APP_VERSION}</span>
+      </div>
+      <div className="cb-panel-card space-y-1">
+        <div className="text-[11px] font-bold text-neutral-800 dark:text-neutral-100">ClassBoard · 师者屏隅轻辅</div>
+        <div className="text-[10px] text-neutral-400 leading-relaxed">悬停即启，一窗百用，默认唯时，诸能可择。本地优先，不登录不联网也能用。</div>
+        <button onClick={() => setShowLog(!showLog)} className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline">
+          {showLog ? "收起更新日志" : "查看更新日志"}
+        </button>
+        {showLog && (
+          <div className="space-y-1 pt-0.5 animate-slide-up">
+            {CHANGELOG.map(([v, d]) => (
+              <div key={v} className="flex gap-2 text-[10px] leading-relaxed">
+                <span className="font-black text-neutral-700 dark:text-neutral-200 shrink-0">{v}</span>
+                <span className="text-neutral-500">{d}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 px-0.5 pt-1">
