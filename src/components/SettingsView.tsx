@@ -9,6 +9,7 @@ const APP_VERSION: string = pkg.version;
 
 /** 应用内更新日志（与 README 版本演进表同源，保持简短） */
 const CHANGELOG: [string, string][] = [
+  ["v2.4 待办带走", "待办导出文本文件"],
   ["v2.3 铃留痕", "上次铃声是哪节"],
   ["v2.2 预备铃", "课前几分钟先响一声"],
   ["v2.1 先听为快", "课表页试听上下课铃"],

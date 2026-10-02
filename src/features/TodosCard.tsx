@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
+import { saveFile, stampName } from "../lib/export-file";
 import { uid } from "../lib/utils";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
@@ -25,6 +26,19 @@ export default function TodosCard() {
   };
   const left = todos.filter((t) => !t.done).length;
   const pct = todos.length ? Math.round(((todos.length - left) / todos.length) * 100) : 0;
+  const exportTxt = async () => {
+    if (!todos.length) { setCopyMsg("没有待办可导出"); return; }
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    const lines = todos.map((t) => `${t.done ? "[x]" : "[ ]"} ${t.text}`);
+    const text = `ClassBoard 待办（${stamp}，剩 ${left} 项）\n${lines.join("\n")}\n`;
+    try {
+      const where = await saveFile(stampName("classboard-todos", "txt"), `\uFEFF${text}`);
+      setCopyMsg(where ? `已导出 ${todos.length} 项` : "已取消");
+    } catch { setCopyMsg("导出失败，再试一次"); }
+    setTimeout(() => setCopyMsg(""), 2500);
+  };
   const sorted = useMemo(() => [...todos].sort((a, b) => Number(a.done) - Number(b.done)), [todos]);
   const add = () => { if (draft.trim()) { setTodos([...todos, { id: uid(), text: draft.trim(), done: false }]); setDraft(""); } };
   const commitEdit = (id: string) => {
@@ -62,6 +76,9 @@ export default function TodosCard() {
         <button className="cb-btn-primary !px-3.5 flex items-center" onClick={add}><UiIcon k="plus" size={13} /></button>
       </div>
       <div className="flex items-center gap-2">
+        {todos.length > 0 && (
+          <button className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline" title="把全部待办存成文本文件（已完成打勾）" onClick={() => void exportTxt()}>导出文本</button>
+        )}
         {left > 0 && (
           <button className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline" title="把未完成项拼成序号文本，复制发群" onClick={() => void copyLeft()}>复制未完成</button>
         )}
