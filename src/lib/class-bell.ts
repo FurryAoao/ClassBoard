@@ -32,6 +32,26 @@ export function setBellLead(mins: number) {
   import("./store-helpers").then(({ kvSet }) => kvSet("bell:lead", JSON.stringify(n)));
 }
 
+/** 上次铃声留痕：响过后记一条，课表页一眼看到刚才响的是哪节 */
+export interface BellRecord { kind: "pre" | "start" | "end"; name: string; at: string; date: string }
+
+export function getLastBell(): BellRecord | null {
+  try {
+    const raw = localStorage.getItem("cb:bell:last");
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || typeof o !== "object") return null;
+    return o as BellRecord;
+  } catch {
+    return null;
+  }
+}
+
+export function bellText(r: BellRecord): string {
+  const k = r.kind === "pre" ? "预备" : r.kind === "start" ? "上课" : "下课";
+  return `${r.at} ${k}${r.name ? ` · ${r.name}` : ""}`;
+}
+
 export function checkClassBell(now: Date): { kind: "pre" | "start" | "end"; name: string } | null {
   try {
     // 总开关：关了哔声，铃声也不打扰；铃声自己也可独立关
@@ -81,6 +101,12 @@ export function checkClassBell(now: Date): { kind: "pre" | "start" | "end"; name
       try { localStorage.setItem("cb:bell:rung", JSON.stringify(rung)); } catch { /* ignore */ }
       import("./store-helpers").then(({ kvSet }) => kvSet("bell:rung", JSON.stringify(rung))).catch(() => {});
     };
+    const recordLast = (kind: "pre" | "start" | "end", name: string) => {
+      try {
+        const rec: BellRecord = { kind, name, at: t, date: dateStr };
+        localStorage.setItem("cb:bell:last", JSON.stringify(rec));
+      } catch { /* ignore */ }
+    };
     for (const c of courses) {
       if (!c || c.day !== day) continue;
       // 预备铃：上课 lead 分钟前先响一声（每节每天一次），方便提前进教室
@@ -90,7 +116,9 @@ export function checkClassBell(now: Date): { kind: "pre" | "start" | "end"; name
           const id = `${dateStr}|${c.id}|pre`;
           if (!rung[id]) {
             mark(id);
-            return { kind: "pre", name: typeof c.name === "string" ? c.name : "" };
+            const nm = typeof c.name === "string" ? c.name : "";
+            recordLast("pre", nm);
+            return { kind: "pre", name: nm };
           }
         }
       }
@@ -98,14 +126,18 @@ export function checkClassBell(now: Date): { kind: "pre" | "start" | "end"; name
         const id = `${dateStr}|${c.id}|start`;
         if (!rung[id]) {
           mark(id);
-          return { kind: "start", name: typeof c.name === "string" ? c.name : "" };
+          const nm = typeof c.name === "string" ? c.name : "";
+          recordLast("start", nm);
+          return { kind: "start", name: nm };
         }
       }
       if (c.end === t) {
         const id = `${dateStr}|${c.id}|end`;
         if (!rung[id]) {
           mark(id);
-          return { kind: "end", name: typeof c.name === "string" ? c.name : "" };
+          const nm = typeof c.name === "string" ? c.name : "";
+          recordLast("end", nm);
+          return { kind: "end", name: nm };
         }
       }
     }
