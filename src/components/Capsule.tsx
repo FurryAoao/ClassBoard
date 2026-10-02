@@ -5,6 +5,7 @@ import { weekZh } from "../lib/utils";
 import { UiIcon } from "./icons";
 import { useLesson } from "../store/useLesson";
 import { useTimer, displaySecs } from "../store/useTimer";
+import { useFocus, displayLeft } from "../store/useFocus";
 
 interface Course { id: string; day: number; start: string; end: string; name: string; room: string; }
 interface Todo { id: string; text: string; done: boolean; }
@@ -17,6 +18,7 @@ export default function Capsule() {
   const [courses] = usePersistentState<Course[]>("schedule:list", []);
   const [todos] = usePersistentState<Todo[]>("todos:list", []);
   const { mode: timerModeStore, baseSecs: timerBase, running: timerRunningStore, runningSince: timerSince } = useTimer();
+  const { baseLeft: fBase, running: fRunningStore, runningSince: fSince } = useFocus();
   const [tick, setTick] = useState(0);
 
   const hh = String(now.getHours()).padStart(2, "0");
@@ -51,8 +53,13 @@ export default function Capsule() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages.length, current?.id, next?.id, left, timerRunning]);
 
-  const override = focusOn
-    ? `专注中${activeCourse ? ` · ${activeCourse.name}` : ""}`
+  const focusSecs = enabled.focus ? displayLeft({ baseLeft: fBase, running: fRunningStore, runningSince: fSince }, now.getTime()) : null;
+  const focusText = focusOn && focusSecs !== null
+    ? `专注 ${String(Math.floor(focusSecs / 60)).padStart(2, "0")}:${String(focusSecs % 60).padStart(2, "0")}`
+    : null;
+
+  const override = focusText
+    ? `${focusText}${activeCourse ? ` · ${activeCourse.name}` : ""}`
     : activeCourse
       ? `上课中 · ${activeCourse.name}`
       : null;

@@ -62,9 +62,11 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
     return courses.some((c) => c.day === d && c.start <= t && t <= c.end);
   }, [courses, now, enabled.schedule]);
 
+  // 首页九宫格与标签栏同款实时角标：一眼看到待办余量/上课中/计时/专注
+  const homeBadges = { left, inClass, timerAlive, timerLabel, fRunning: enabled.focus && fRunning };
   const renderFeature = () => {
     if (view === "settings") return <SettingsView />;
-    if (view === "home") return <HomeGrid visible={visible} />;
+    if (view === "home") return <HomeGrid visible={visible} {...homeBadges} />;
     switch (activeFeature) {
       case "clock": return enabled.clock ? <ClockCard /> : <EmptyHint />;
       case "board": return enabled.board ? <BoardCard /> : <EmptyHint />;
@@ -81,7 +83,7 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
       case "weather": return enabled.weather ? <WeatherCard /> : <EmptyHint />;
       case "display": return enabled.display ? <DisplayCard /> : <EmptyHint />;
       case "plugins": return enabled.plugins ? <PluginsCard /> : <EmptyHint />;
-      default: return <HomeGrid visible={visible} />;
+      default: return <HomeGrid visible={visible} {...homeBadges} />;
     }
   };
 
@@ -164,8 +166,10 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
   );
 }
 
-/** 首页：已开启功能九宫格，直达各卡片 */
-function HomeGrid({ visible }: { visible: FeatureKey[] }) {
+/** 首页：已开启功能九宫格，直达各卡片（带实时角标：待办余数/上课中/计时/专注） */
+function HomeGrid({ visible, left, inClass, timerAlive, timerLabel, fRunning }: {
+  visible: FeatureKey[]; left: number; inClass: boolean; timerAlive: boolean; timerLabel: string | null; fRunning: boolean;
+}) {
   const { openFeature, setView } = useSettings();
   if (!visible.length) {
     return (
@@ -181,12 +185,24 @@ function HomeGrid({ visible }: { visible: FeatureKey[] }) {
     <div className="pt-1 grid grid-cols-4 gap-2">
       {visible.map((k, i) => (
         <button key={k} onClick={() => openFeature(k)} title={FEATURE_META[k].desc}
-          className="flex flex-col items-center gap-1.5 py-3.5 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] hover:border-black/15 dark:hover:border-white/20 hover:scale-[1.03] active:scale-[0.98] transition-all animate-fade-in"
+          className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] hover:border-black/15 dark:hover:border-white/20 hover:scale-[1.03] active:scale-[0.98] transition-all animate-fade-in"
           style={{ animationDelay: `${Math.min(i * 25, 300)}ms` }}>
           <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${FEATURE_TINT[k]}`}>
             <FeatureIcon k={k} size={18} />
           </span>
           <span className="text-[11px] font-bold text-neutral-700 dark:text-neutral-200">{FEATURE_META[k].name}</span>
+          {k === "todos" && left > 0 && (
+            <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">{left > 99 ? "99" : left}</span>
+          )}
+          {k === "schedule" && inClass && (
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          )}
+          {k === "timer" && timerAlive && timerLabel && (
+            <span className="absolute top-1.5 right-1.5 h-4 px-1 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center tabular-nums">{timerLabel}</span>
+          )}
+          {k === "focus" && fRunning && (
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+          )}
         </button>
       ))}
     </div>
