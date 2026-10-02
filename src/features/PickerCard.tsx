@@ -3,6 +3,7 @@ import { usePersistentState } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
 import { useLesson } from "../store/useLesson";
+import { saveFile, stampName } from "../lib/export-file";
 
 /** 随机点名 / 分组：不重复点完一轮 + 历史 */
 export default function PickerCard() {
@@ -17,6 +18,34 @@ export default function PickerCard() {
   const [fair, setFair] = usePersistentState("picker:fair", true);
   const [seatMode, setSeatMode] = usePersistentState("picker:seat", false);
   const [cols, setCols] = usePersistentState("picker:cols", 6);
+  const [csvMsg, setCsvMsg] = useState("");
+  const [copyMsg, setCopyMsg] = useState("");
+  // 考勤导出：走统一存文件帮手，桌面端弹保存框，浏览器直接下载
+  const exportCsv = async () => {
+    if (!activeCourse || !names.length) return;
+    try {
+      const lines = ["\uFEFF姓名,状态"];
+      names.forEach((n) => lines.push(`${n},${check[n] ?? "未点"}`));
+      const where = await saveFile(stampName(`${activeCourse.name}-考勤`, "csv"), lines.join("\n"));
+      setCsvMsg(where ? `已导出 ${names.length} 人${where.length > 24 ? "到 …" + where.slice(-24) : ""}` : "已取消");
+    } catch { setCsvMsg("导出失败，再试一次"); }
+    setTimeout(() => setCsvMsg(""), 2500);
+  };
+  // 复制缺勤名单：缺 + 假 + 未点，一行发群
+  const copyAbsence = async () => {
+    const que = names.filter((n) => check[n] === "缺");
+    const jia = names.filter((n) => check[n] === "假");
+    const un = names.filter((n) => !check[n]);
+    if (!que.length && !jia.length && !un.length) { setCopyMsg("全员到齐"); setTimeout(() => setCopyMsg(""), 2000); return; }
+    const parts: string[] = [];
+    if (que.length) parts.push(`缺 ${que.length} 人：${que.join("、")}`);
+    if (jia.length) parts.push(`假 ${jia.length} 人：${jia.join("、")}`);
+    if (un.length) parts.push(`未点 ${un.length} 人：${un.join("、")}`);
+    const text = `${activeCourse ? activeCourse.name : "本节"}考勤｜${parts.join("｜")}`;
+    try { await navigator.clipboard.writeText(text); setCopyMsg("缺勤名单已复制，发群直接粘贴"); }
+    catch { setCopyMsg("复制失败：请手动长按复制"); }
+    setTimeout(() => setCopyMsg(""), 2500);
+  };
 
   const remaining = useMemo(() => names.filter((n) => !picked.includes(n)), [names, picked]);
 
@@ -91,17 +120,20 @@ export default function PickerCard() {
       </div>
       {groups}
       {activeCourse && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-violet-600/10 border border-violet-500/25 text-[11px] font-bold text-violet-700 dark:text-violet-300">
-          <span className="flex-1 truncate">上课中：{activeCourse.name} · 点到谁记谁</span>
-          <button className="shrink-0 px-2.5 py-1 rounded-full bg-violet-600 text-white text-[10px] font-black" onClick={() => {
-            const lines = ["\uFEFF姓名,状态"];
-            names.forEach((n) => lines.push(`${n},${check[n] ?? "未点"}`));
-            const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = `${activeCourse.name}-考勤-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 2000);
-          }}>导出考勤 CSV</button>
+        <div className="px-3 py-2 rounded-2xl bg-violet-600/10 border border-violet-500/25 text-[11px] font-bold text-violet-700 dark:text-violet-300 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="flex-1 truncate">上课中：{activeCourse.name} · 点到谁记谁</span>
+            <button className="shrink-0 px-2.5 py-1 rounded-full bg-violet-600 text-white text-[10px] font-black" onClick={() => void exportCsv()}>导出考勤 CSV</button>
+          </div>
+          {names.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="flex-1 truncate font-normal text-neutral-500">
+                到 {(Object.values(check).filter((v) => v === "到").length) || 0} · 缺 {(Object.values(check).filter((v) => v === "缺").length) || 0} · 假 {(Object.values(check).filter((v) => v === "假").length) || 0}
+              </span>
+              <button className="shrink-0 text-[10px] font-black text-violet-600 hover:underline" onClick={() => void copyAbsence()}>复制缺勤名单</button>
+            </div>
+          )}
+          {(csvMsg || copyMsg) && <div className="text-[10px] font-bold text-violet-600">{csvMsg || copyMsg}</div>}
         </div>
       )}
       {names.length > 0 && (
