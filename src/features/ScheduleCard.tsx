@@ -108,6 +108,14 @@ export default function ScheduleCard() {
     try { await navigator.clipboard.writeText(lines.join("\n")); setIcsMsg(`已复制 ${courses.length} 节，发群直接粘贴`); }
     catch { setIcsMsg("复制失败：请手动长按复制"); }
   };
+  // 今日发群：只拼今天的课表，每天发群更常用
+  const copyToday = async () => {
+    if (!todayList.length) { setIcsMsg(`今天${weekZh(now.getDay())}没有课，不用发群`); return; }
+    const lines = [`今日课表 ${weekZh(now.getDay())}（${todayList.length} 节）`];
+    todayList.forEach((c) => lines.push(`${c.start}-${c.end} ${c.name}${c.room ? `@${c.room}` : ""}`));
+    try { await navigator.clipboard.writeText(lines.join("\n")); setIcsMsg(`已复制今日 ${todayList.length} 节，发群直接粘贴`); }
+    catch { setIcsMsg("复制失败：请手动长按复制"); }
+  };
 
   const importIcs = async (f: File) => {
     try {
@@ -201,8 +209,10 @@ export default function ScheduleCard() {
       <CardHeader icon="schedule" title="课程表" sub={`今天${weekZh(now.getDay())} · 本周 ${courses.length} 节`}
         right={
           <span className="flex gap-1">
+            <button onClick={() => void copyToday()} title="只拼今天的课表，每天发群更常用"
+              className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">今日发群</button>
             <button onClick={() => void copyWeek()} title="把整周课表拼成文本，复制发群"
-              className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">发群</button>
+              className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">整周发群</button>
             <button onClick={() => void exportIcs()} title="把本周课表存成 ICS，手机日历可导入"
               className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">ICS 导出</button>
             <button onClick={() => fileRef.current?.click()} title="从 ICS 日历文件导入"
