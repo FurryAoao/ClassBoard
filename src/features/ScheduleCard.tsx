@@ -184,7 +184,11 @@ export default function ScheduleCard() {
         onChange={(e) => { const f = e.target.files?.[0]; if (f) importIcs(f); e.target.value = ""; }} />
       {icsMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{icsMsg}</div>}
       <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-black/[0.04] dark:bg-white/[0.05]">
-        <span className="flex-1 text-[11px] font-bold text-neutral-600 dark:text-neutral-300">上下课铃 · 到点自动响（上课高音/下课低音）</span>
+        <span className="flex-1 text-[11px] font-bold text-neutral-600 dark:text-neutral-300">上下课铃 · 到点自动响</span>
+        <button className="text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0" title="试听上课铃（高音四声）"
+          onClick={() => import("../lib/sound").then(({ beep }) => beep(4, 988))}>试上课</button>
+        <button className="text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0" title="试听下课铃（低音两声）"
+          onClick={() => import("../lib/sound").then(({ beep }) => beep(2, 523))}>试下课</button>
         <button
           onClick={async () => {
             const { setBellOn } = await import("../lib/class-bell");
