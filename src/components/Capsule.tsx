@@ -45,6 +45,40 @@ export default function Capsule() {
   else if (next) pages.unshift(`下一节 ${next.start} · ${next.name}`);
   if (timerText) pages.unshift(timerText);
   if (left > 0) pages.push(`待办剩 ${left} 项`);
+  // 胶囊见铃：预备铃倒计时优先插队，上次铃声进轮显，收起也看得见
+  let bellSoon: string | null = null;
+  let bellLastPage: string | null = null;
+  try {
+    if (enabled.schedule) {
+      const rawSound = localStorage.getItem("cb:sound:on");
+      const soundOff = rawSound !== null && JSON.parse(rawSound) === false;
+      const rawBellOn = localStorage.getItem("cb:bell:on");
+      const bellOn = rawBellOn === null || JSON.parse(rawBellOn) !== false;
+      if (!soundOff && bellOn) {
+        const rawLead = localStorage.getItem("cb:bell:lead");
+        const lead = rawLead ? Number(JSON.parse(rawLead)) : 0;
+        if (lead === 3 || lead === 5 || lead === 10) {
+          const nx = courses.filter((c) => c.day === d && c.start > t).sort((a, b) => a.start.localeCompare(b.start))[0];
+          if (nx) {
+            const [nh, nm] = nx.start.split(":").map(Number);
+            const diffMin = nh * 60 + nm - (now.getHours() * 60 + now.getMinutes());
+            if (diffMin >= 1 && diffMin <= lead) bellSoon = `预备铃 ${diffMin} 分钟后 · ${nx.name}`;
+          }
+        }
+        const rawLast = localStorage.getItem("cb:bell:last");
+        if (rawLast) {
+          const r = JSON.parse(rawLast);
+          const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          if (r && r.date === dateStr && r.at) {
+            const k = r.kind === "pre" ? "预备铃" : r.kind === "start" ? "上课铃" : "下课铃";
+            bellLastPage = `${r.at} ${k}${r.name ? ` · ${r.name}` : ""}`;
+          }
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  if (bellSoon) pages.unshift(bellSoon);
+  if (bellLastPage) pages.push(bellLastPage);
 
   useEffect(() => {
     if (pages.length <= 1) return;
