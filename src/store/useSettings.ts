@@ -82,6 +82,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
     if (k === "schedule" && !next[k]) {
       import("./useLesson").then(({ useLesson }) => useLesson.getState().endClass());
     }
+    // 关闭计时器 = 暂停：停后台任务，进度保留，切回来继续
+    if (k === "timer" && !next[k]) {
+      import("./useTimer").then(({ useTimer }) => useTimer.getState().pause());
+    }
     // 关闭当前正看的功能 -> 回时钟；只隐藏入口停任务，数据保留
     if (!next[k] && get().activeFeature === k) {
       set({ enabled: next, view: "home", activeFeature: "clock" });

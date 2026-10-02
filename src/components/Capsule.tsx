@@ -4,6 +4,7 @@ import { useSettings } from "../store/useSettings";
 import { weekZh } from "../lib/utils";
 import { UiIcon } from "./icons";
 import { useLesson } from "../store/useLesson";
+import { useTimer, displaySecs } from "../store/useTimer";
 
 interface Course { id: string; day: number; start: string; end: string; name: string; room: string; }
 interface Todo { id: string; text: string; done: boolean; }
@@ -15,6 +16,7 @@ export default function Capsule() {
   const { activeCourse, focusOn } = useLesson();
   const [courses] = usePersistentState<Course[]>("schedule:list", []);
   const [todos] = usePersistentState<Todo[]>("todos:list", []);
+  const { mode: timerModeStore, baseSecs: timerBase, running: timerRunningStore, runningSince: timerSince } = useTimer();
   const [tick, setTick] = useState(0);
 
   const hh = String(now.getHours()).padStart(2, "0");
@@ -30,9 +32,16 @@ export default function Capsule() {
     : null;
   const left = enabled.todos ? todos.filter((x) => !x.done).length : 0;
 
+  const timerRunning = timerRunningStore;
+  const timerMode = timerModeStore;
+  const timerSecs = displaySecs({ mode: timerMode, baseSecs: timerBase, running: timerRunning, runningSince: timerSince }, now.getTime());
+  const timerExpired = timerRunning && timerMode === "down" && timerSecs <= 0;
+  const timerText = timerExpired ? "计时到时" : timerRunning ? `计时 ${String(Math.floor(timerSecs / 60)).padStart(2, "0")}:${String(timerSecs % 60).padStart(2, "0")}` : null;
+
   const pages: string[] = [`${weekZh(now.getDay())} · 悬停展开`];
   if (current) pages.unshift(`正在上课 · ${current.name}`);
   else if (next) pages.unshift(`下一节 ${next.start} · ${next.name}`);
+  if (timerText) pages.unshift(timerText);
   if (left > 0) pages.push(`待办剩 ${left} 项`);
 
   useEffect(() => {
@@ -40,7 +49,7 @@ export default function Capsule() {
     const id = window.setInterval(() => setTick((s) => s + 1), 4000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pages.length, current?.id, next?.id, left]);
+  }, [pages.length, current?.id, next?.id, left, timerRunning]);
 
   const override = focusOn
     ? `专注中${activeCourse ? ` · ${activeCourse.name}` : ""}`

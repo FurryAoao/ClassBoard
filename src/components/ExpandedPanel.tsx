@@ -1,5 +1,6 @@
-import { Suspense, lazy, useMemo } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useSettings } from "../store/useSettings";
+import { useTimer, displaySecs } from "../store/useTimer";
 import { FEATURE_META, FEATURE_ORDER, type FeatureKey } from "../lib/utils";
 import { useNow, usePersistentState } from "../lib/store-helpers";
 import { FeatureIcon, UiIcon } from "./icons";
@@ -36,9 +37,20 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
   const { enabled, activeFeature, openFeature, view, setView, pinned, setPinned } = useSettings();
   const visible = FEATURE_ORDER.filter((k) => enabled[k]);
 
-  // 角标：待办余量 / 当前课程
+  // 角标：待办余量 / 当前课程 / 计时运行
   const [todos] = usePersistentState<Todo[]>("todos:list", []);
   const [courses] = usePersistentState<Course[]>("schedule:list", []);
+  const { mode: tMode, baseSecs: tBase, running: tRunning, runningSince: tSince } = useTimer();
+  const [, forceTick] = useState(0);
+  // 计时标签点需要秒级刷新（只在计时运行时）
+  useEffect(() => {
+    if (!tRunning || !enabled.timer) return;
+    const id = window.setInterval(() => forceTick((s) => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [tRunning, enabled.timer]);
+  const timerAlive = enabled.timer && tRunning;
+  const timerSecsLive = displaySecs({ mode: tMode, baseSecs: tBase, running: tRunning, runningSince: tSince }, Date.now());
+  const timerLabel = timerAlive ? (tMode === "down" && timerSecsLive <= 0 ? "到时" : `${String(Math.floor(timerSecsLive / 60)).padStart(2, "0")}:${String(timerSecsLive % 60).padStart(2, "0")}`) : null;
   const now = useNow(view !== "settings");
   const left = useMemo(() => todos.filter((t) => !t.done).length, [todos]);
   const inClass = useMemo(() => {
@@ -123,6 +135,9 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
               )}
               {k === "schedule" && inClass && (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+              {k === "timer" && timerAlive && (
+                <span className="h-4 px-1 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center tabular-nums">{timerLabel}</span>
               )}
             </button>
           ))}
