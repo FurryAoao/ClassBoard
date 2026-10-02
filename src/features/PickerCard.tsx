@@ -182,6 +182,7 @@ export default function PickerCard() {
               {s} {(Object.values(check).filter((v) => v === s).length) || 0}
             </button>
           ))}
+          <button className="text-[10px] font-black text-emerald-600 hover:underline" title="先全部记到，再改缺/假，最快" onClick={() => setCheck(Object.fromEntries(names.map((n) => [n, "到"])))}>全到</button>
           <button className="ml-auto text-[10px] text-neutral-400 hover:text-red-500" onClick={() => setCheck({})}>清标记</button>
         </div>
       )}
