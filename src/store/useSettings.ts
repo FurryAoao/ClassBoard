@@ -86,6 +86,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
     if (k === "timer" && !next[k]) {
       import("./useTimer").then(({ useTimer }) => useTimer.getState().pause());
     }
+    // 关闭专注 = 暂停：保留剩余，切回来继续
+    if (k === "focus" && !next[k]) {
+      import("./useFocus").then(({ useFocus }) => useFocus.getState().pause());
+    }
     // 关闭当前正看的功能 -> 回时钟；只隐藏入口停任务，数据保留
     if (!next[k] && get().activeFeature === k) {
       set({ enabled: next, view: "home", activeFeature: "clock" });

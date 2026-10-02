@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useSettings } from "../store/useSettings";
 import { useTimer, displaySecs } from "../store/useTimer";
+import { useFocus } from "../store/useFocus";
 import { FEATURE_META, FEATURE_ORDER, type FeatureKey } from "../lib/utils";
 import { useNow, usePersistentState } from "../lib/store-helpers";
 import { FeatureIcon, UiIcon } from "./icons";
@@ -41,6 +42,7 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
   const [todos] = usePersistentState<Todo[]>("todos:list", []);
   const [courses] = usePersistentState<Course[]>("schedule:list", []);
   const { mode: tMode, baseSecs: tBase, running: tRunning, runningSince: tSince } = useTimer();
+  const { running: fRunning } = useFocus();
   const [, forceTick] = useState(0);
   // 计时标签点需要秒级刷新（只在计时运行时）
   useEffect(() => {
@@ -138,6 +140,9 @@ export default function ExpandedPanel({ width, height, onCollapse }: { width: nu
               )}
               {k === "timer" && timerAlive && (
                 <span className="h-4 px-1 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center tabular-nums">{timerLabel}</span>
+              )}
+              {k === "focus" && enabled.focus && fRunning && (
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
               )}
             </button>
           ))}

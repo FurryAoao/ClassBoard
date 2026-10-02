@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSettings } from "./store/useSettings";
 import { settleTimerIfExpired } from "./store/useTimer";
+import { settleFocusIfExpired } from "./store/useFocus";
 import { syncWindowSize, isTauri } from "./lib/utils";
 import Capsule from "./components/Capsule";
 import ExpandedPanel from "./components/ExpandedPanel";
@@ -48,9 +49,13 @@ export default function App() {
     }, HOVER_CLOSE_DELAY);
   };
 
-  // 计时后台结算：倒计时在切卡/收起时跑完，这里统一冻结为“时间到”，不丢状态
+  // 计时/专注后台结算：倒计时在切卡/收起时跑完，这里统一冻结，不丢状态
   useEffect(() => {
-    const id = window.setInterval(() => settleTimerIfExpired(Date.now()), 1000);
+    const id = window.setInterval(() => {
+      const now = Date.now();
+      settleTimerIfExpired(now);
+      settleFocusIfExpired(now);
+    }, 1000);
     return () => window.clearInterval(id);
   }, []);
 

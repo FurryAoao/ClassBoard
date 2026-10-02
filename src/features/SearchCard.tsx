@@ -45,6 +45,7 @@ export default function SearchCard() {
         if (k === "cb:enabled" || k === "cb:ui") continue;
         if (k === "cb:board:img") continue; // 白板位图不进搜索
         if (k === "cb:lesson" || k === "cb:pos" || k === "cb:timer") continue; // 内部状态不进搜索
+        if (k === "cb:focus" || k.startsWith("cb:focus:")) continue; // 专注内部状态不进搜索
         if (k === "cb:app" || k === "cb:version" || k === "cb:exportedAt") continue; // 备份元信息不进搜索 // 白板位图不进搜索
         const v = localStorage.getItem(k) ?? "";
         if (v.length > 4000) continue; // 超大值（二进制/位图）跳过
