@@ -84,6 +84,10 @@ export default function PickerCard() {
       if (++i > 10) {
         clearInterval(t); setRolling(false);
         if (fair && typeof name === "string") setPicked([...base, name]);
+        // 点中即到：点出来回答问题默认人在，未点才自动记到，不覆盖缺/假
+        if (typeof name === "string") {
+          setCheck((prev) => (prev[name] ? prev : { ...prev, [name]: "到" }));
+        }
       }
     }, 70);
   };
