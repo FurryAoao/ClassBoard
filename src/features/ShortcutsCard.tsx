@@ -4,7 +4,7 @@ import { uid, isTauri } from "../lib/utils";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
 
-interface Link { id: string; name: string; target: string; kind: "file" | "web"; }
+interface Link { id: string; name: string; target: string; kind: "file" | "web"; pinned?: boolean; }
 
 /** 文件 / 网址快捷方式：上课一键直达课件 */
 export default function ShortcutsCard() {
@@ -39,19 +39,23 @@ export default function ShortcutsCard() {
 
   const add = () => {
     if (!name.trim() || !target.trim()) { setMsg("名称和路径都要填"); return; }
-    setLinks([...links, { id: uid(), name: name.trim(), target: target.trim(), kind: /^https?:/i.test(target.trim()) ? "web" : "file" }]);
+    setLinks([...links, { id: uid(), name: name.trim(), target: target.trim(), kind: /^https?:/i.test(target.trim()) ? "web" : "file", pinned: false }]);
     setName(""); setTarget(""); setMsg("已添加");
   };
+  const sorted = [...links].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+  const togglePin = (id: string) => setLinks(links.map((x) => x.id === id ? { ...x, pinned: !x.pinned } : x));
 
   return (
     <div className="space-y-2">
       <CardHeader icon="shortcuts" title="快捷方式" sub={`${links.length} 个直达`} />
       {msg && <div className="text-[11px] font-bold text-sky-600 dark:text-sky-400 px-1 animate-fade-in">{msg}</div>}
       <div className="grid grid-cols-2 gap-2">
-        {links.map((l) => (
-          <div key={l.id} className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.05] dark:border-white/[0.07] hover:border-black/15 dark:hover:border-white/20 transition-colors">
+        {sorted.map((l) => (
+          <div key={l.id} className={`flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-2xl border transition-colors ${l.pinned ? "bg-sky-500/[0.08] dark:bg-sky-500/[0.1] border-sky-500/30" : "bg-white/60 dark:bg-white/[0.04] border-black/[0.05] dark:border-white/[0.07] hover:border-black/15 dark:hover:border-white/20"}`}>
             <span className="text-neutral-400 shrink-0"><UiIcon k={l.kind === "web" ? "globe" : "file"} size={13} /></span>
             <button className="flex-1 text-left text-[12px] font-bold truncate text-neutral-800 dark:text-neutral-100" title={l.target} onClick={() => open(l)}>{l.name}</button>
+            <button title={l.pinned ? "取消置顶" : "置顶：上课前排在最前"} onClick={() => togglePin(l.id)}
+              className={`cb-icon-btn !w-5 !h-5 ${l.pinned ? "!text-sky-500" : ""}`}><UiIcon k="pin" size={10} /></button>
             <button className="cb-icon-btn !w-5 !h-5" onClick={() => setLinks(links.filter((x) => x.id !== l.id))}><UiIcon k="x" size={10} /></button>
           </div>
         ))}
