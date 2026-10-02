@@ -2,7 +2,8 @@ import { useMemo, useRef, useState } from "react";
 import { usePersistentState, useNow } from "../lib/store-helpers";
 import { useSettings } from "../store/useSettings";
 import { useLesson } from "../store/useLesson";
-import { weekZh, uid } from "../lib/utils";
+import { weekZh, uid, isTauri } from "../lib/utils";
+import { saveFile, stampName } from "../lib/export-file";
 import { kvGet, kvSet } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
@@ -33,6 +34,32 @@ export default function ScheduleCard() {
     () => [0, 1, 2, 3, 4, 5, 6].map((dd) => ({ day: dd, list: courses.filter((c) => c.day === dd).sort((a, b) => a.start.localeCompare(b.start)) })),
     [courses]
   );
+
+  const exportIcs = async () => {
+    if (!courses.length) { setIcsMsg("课表是空的，先加几节课"); return; }
+    try {
+      // 以本周为基准，把周课表落到具体日期，手机日历可直接订阅
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - d);
+      const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ClassBoard//Schedule//CN"];
+      for (const c of courses) {
+        const dayD = new Date(monday);
+        dayD.setDate(monday.getDate() + c.day);
+        const [sh, sm] = c.start.split(":").map(Number);
+        const [eh, em] = c.end.split(":").map(Number);
+        const s = new Date(dayD); s.setHours(sh, sm, 0, 0);
+        const e = new Date(dayD); e.setHours(eh, em, 0, 0);
+        const f = (x: Date) =>
+          `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, "0")}${String(x.getDate()).padStart(2, "0")}T${String(x.getHours()).padStart(2, "0")}${String(x.getMinutes()).padStart(2, "0")}00`;
+        lines.push("BEGIN:VEVENT", `UID:${c.id}@classboard`, `DTSTART:${f(s)}`, `DTEND:${f(e)}`,
+          `SUMMARY:${c.name.replace(/[,;]/g, " ")}`, ...(c.room ? [`LOCATION:${c.room.replace(/[,;]/g, " ")}`] : []), "END:VEVENT");
+      }
+      lines.push("END:VCALENDAR");
+      const where = await saveFile(stampName("classboard-schedule", "ics"), lines.join("\r\n"));
+      setIcsMsg(where ? `已导出 ${courses.length} 节${isTauri() ? `到 ${short(where)}` : "，手机日历可导入"}` : "已取消");
+    } catch { setIcsMsg("导出失败，再试一次"); }
+  };
+  const short = (p: string) => (p.length > 40 ? "…" + p.slice(-40) : p);
 
   const importIcs = async (f: File) => {
     try {
@@ -118,8 +145,12 @@ export default function ScheduleCard() {
     <div className="space-y-2">
       <CardHeader icon="schedule" title="课程表" sub={`今天${weekZh(now.getDay())} · 本周 ${courses.length} 节`}
         right={
-          <button onClick={() => fileRef.current?.click()} title="从 ICS 日历文件导入"
-            className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">ICS 导入</button>
+          <span className="flex gap-1">
+            <button onClick={() => void exportIcs()} title="把本周课表存成 ICS，手机日历可导入"
+              className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">ICS 导出</button>
+            <button onClick={() => fileRef.current?.click()} title="从 ICS 日历文件导入"
+              className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">ICS 导入</button>
+          </span>
         } />
       <input ref={fileRef} type="file" accept=".ics,text/calendar" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) importIcs(f); e.target.value = ""; }} />

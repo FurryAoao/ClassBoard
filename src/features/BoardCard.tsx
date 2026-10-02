@@ -3,6 +3,7 @@ import { usePersistentState } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
 import { useDisplay, displayLabel } from "../store/useDisplay";
+import { saveFile, dataUrlToBytes, stampName } from "../lib/export-file";
 
 /** 教学白板：速写 + 投屏状态标记 + 自动落盘（仍在单窗口内） */
 export default function BoardCard() {
@@ -15,6 +16,15 @@ export default function BoardCard() {
   const mirroring = displayMode !== "off";
   const [note, setNote] = usePersistentState("board:note", "");
   const [saved, setSaved] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
+  const savePng = async () => {
+    try {
+      const url = canvasRef.current!.toDataURL("image/png");
+      const where = await saveFile(stampName("classboard-board", "png"), dataUrlToBytes(url));
+      setSaveMsg(where ? `已存到 ${where.length > 40 ? "…" + where.slice(-40) : where}` : "已取消");
+    } catch { setSaveMsg("存图失败，再试一次"); }
+    setTimeout(() => setSaveMsg(""), 2500);
+  };
 
   // 恢复上次画布
   useEffect(() => {
@@ -100,7 +110,10 @@ export default function BoardCard() {
         <button className="ml-auto text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.07] text-neutral-500 hover:bg-black/[0.08] transition-colors" onClick={undo}>撤销</button>
         <button className="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.07] text-neutral-500 hover:text-red-500 transition-colors"
           onClick={() => { snapshot(); canvasRef.current!.getContext("2d")!.clearRect(0, 0, 640, 300); persist(); }}>清空</button>
+        <button className="text-[11px] font-black px-2.5 py-1.5 rounded-full bg-sky-500 text-white hover:bg-sky-600 transition-colors"
+          title="把当前板书存成 PNG 图片" onClick={() => void savePng()}>存图</button>
       </div>
+      {saveMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{saveMsg}</div>}
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="本节要点备注（自动保存）" className="cb-input" />
     </div>
   );

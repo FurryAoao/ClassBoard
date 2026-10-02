@@ -12,6 +12,17 @@ export default function TodosCard() {
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [copyMsg, setCopyMsg] = useState("");
+  const copyLeft = async () => {
+    const leftTodos = todos.filter((t) => !t.done);
+    if (!leftTodos.length) { setCopyMsg("没有未完成项"); return; }
+    const text = leftTodos.map((t, i) => `${i + 1}. ${t.text}`).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyMsg(`已复制 ${leftTodos.length} 项，发群里直接粘贴`);
+    } catch { setCopyMsg("复制失败：请手动长按复制"); }
+    setTimeout(() => setCopyMsg(""), 2500);
+  };
   const left = todos.filter((t) => !t.done).length;
   const pct = todos.length ? Math.round(((todos.length - left) / todos.length) * 100) : 0;
   const sorted = useMemo(() => [...todos].sort((a, b) => Number(a.done) - Number(b.done)), [todos]);
@@ -50,9 +61,15 @@ export default function TodosCard() {
           placeholder="回车快速添加" className="cb-input" />
         <button className="cb-btn-primary !px-3.5 flex items-center" onClick={add}><UiIcon k="plus" size={13} /></button>
       </div>
-      {todos.some((t) => t.done) && (
-        <button className="text-[11px] text-neutral-400 hover:text-red-500 transition-colors" onClick={() => setTodos(todos.filter((t) => !t.done))}>清除已完成</button>
-      )}
+      <div className="flex items-center gap-2">
+        {left > 0 && (
+          <button className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline" title="把未完成项拼成序号文本，复制发群" onClick={() => void copyLeft()}>复制未完成</button>
+        )}
+        {todos.some((t) => t.done) && (
+          <button className="ml-auto text-[11px] text-neutral-400 hover:text-red-500 transition-colors" onClick={() => setTodos(todos.filter((t) => !t.done))}>清除已完成</button>
+        )}
+      </div>
+      {copyMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{copyMsg}</div>}
     </div>
   );
 }
