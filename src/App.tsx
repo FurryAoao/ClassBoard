@@ -49,13 +49,19 @@ export default function App() {
     }, HOVER_CLOSE_DELAY);
   };
 
-  // 计时/专注后台结算：倒计时在切卡/收起时跑完，这里统一冻结并哔声提醒，不丢状态
+  // 计时/专注后台结算 + 上下课铃：倒计时跑完冻结并响；课表到点自动响一嗓子，不丢状态
   useEffect(() => {
     const id = window.setInterval(() => {
       const now = Date.now();
       void import("./lib/sound").then(({ beep }) => {
-        if (settleTimerIfExpired(now)) beep(3, 880);
-        else if (settleFocusIfExpired(now)) beep(2, 660);
+        if (settleTimerIfExpired(now)) { beep(3, 880); return; }
+        if (settleFocusIfExpired(now)) { beep(2, 660); return; }
+        void import("./lib/class-bell").then(({ checkClassBell }) => {
+          const hit = checkClassBell(new Date(now));
+          if (!hit) return;
+          if (hit.kind === "start") beep(4, 988);
+          else beep(2, 523);
+        });
       });
     }, 1000);
     return () => window.clearInterval(id);

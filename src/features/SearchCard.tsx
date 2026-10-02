@@ -49,6 +49,7 @@ export default function SearchCard() {
         if (k === "cb:display" || k === "cb:display:mode") continue; // 投屏内部状态不进搜索
         if (k === "cb:app" || k === "cb:version" || k === "cb:exportedAt") continue; // 备份元信息不进搜索 // 白板位图不进搜索
         if (k === "cb:sound" || k.startsWith("cb:sound:")) continue; // 提醒开关不进搜索
+        if (k === "cb:bell" || k.startsWith("cb:bell:")) continue; // 铃声已响标记/开关不进搜索
         const v = localStorage.getItem(k) ?? "";
         if (v.length > 4000) continue; // 超大值（二进制/位图）跳过
         if (v.toLowerCase().includes(query)) {

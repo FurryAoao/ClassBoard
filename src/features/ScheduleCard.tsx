@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePersistentState, useNow } from "../lib/store-helpers";
 import { useSettings } from "../store/useSettings";
 import { useLesson } from "../store/useLesson";
@@ -22,6 +22,10 @@ export default function ScheduleCard() {
   const [room, setRoom] = useState("");
   const [icsMsg, setIcsMsg] = useState("");
   const [addMsg, setAddMsg] = useState("");
+  const [bellOn, setBellOnState] = useState(true);
+  useEffect(() => {
+    import("../lib/class-bell").then(({ isBellOn }) => setBellOnState(isBellOn()));
+  }, []);
   // 同一天时间重叠即撞车：start < c.end && c.start < end（HH:MM 字符串可直接比）
   const findClash = (dayIdx: number, s: string, e: string) =>
     courses.filter((c) => c.day === dayIdx && s < c.end && c.start < e);
@@ -179,6 +183,21 @@ export default function ScheduleCard() {
       <input ref={fileRef} type="file" accept=".ics,text/calendar" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) importIcs(f); e.target.value = ""; }} />
       {icsMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{icsMsg}</div>}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-black/[0.04] dark:bg-white/[0.05]">
+        <span className="flex-1 text-[11px] font-bold text-neutral-600 dark:text-neutral-300">上下课铃 · 到点自动响（上课高音/下课低音）</span>
+        <button
+          onClick={async () => {
+            const { setBellOn } = await import("../lib/class-bell");
+            const next = !bellOn;
+            setBellOn(next);
+            setBellOnState(next);
+          }}
+          className={`w-10 h-[22px] rounded-full relative transition-colors shrink-0 ${bellOn ? "bg-emerald-500" : "bg-neutral-300 dark:bg-neutral-600"}`}
+          title={bellOn ? "点击关闭铃声" : "点击开启铃声"}
+        >
+          <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${bellOn ? "left-[20px]" : "left-[2px]"}`} />
+        </button>
+      </div>
       {!activeCourse && lastLesson && (
         <div className="px-3 py-2.5 rounded-2xl bg-amber-500/[0.08] border border-amber-500/25 space-y-1.5 animate-fade-in">
           <div className="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">
