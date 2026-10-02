@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
+import { useDisplay, displayLabel } from "../store/useDisplay";
 
 /** 教学白板：速写 + 投屏状态标记 + 自动落盘（仍在单窗口内） */
 export default function BoardCard() {
@@ -10,7 +11,8 @@ export default function BoardCard() {
   const strokes = useRef<string[]>([]);
   const [color, setColor] = usePersistentState("board:color", "#ef4444");
   const [width, setWidth] = usePersistentState("board:width", 5);
-  const [mirroring, setMirroring] = usePersistentState("board:mirror", false);
+  const { mode: displayMode, setMode: setDisplayMode } = useDisplay();
+  const mirroring = displayMode !== "off";
   const [note, setNote] = usePersistentState("board:note", "");
   const [saved, setSaved] = useState(false);
 
@@ -66,9 +68,10 @@ export default function BoardCard() {
     <div className="space-y-2">
       <CardHeader icon="board" title="教学白板"
         right={
-          <button onClick={() => setMirroring(!mirroring)}
+          <button onClick={() => setDisplayMode(mirroring ? "off" : "mirror")}
+            title={displayMode === "extend" ? "扩展屏讲课中，点一下停止；切镜像去投屏控制" : mirroring ? "点一下停止镜像" : "点一下开始镜像投屏"}
             className={`cb-chip transition-colors ${mirroring ? "bg-emerald-500 text-white" : "bg-black/[0.05] dark:bg-white/10 text-neutral-500"}`}>
-            <UiIcon k="dot" size={7} />{mirroring ? "投屏中" : "未投屏"}{saved ? " · 已存" : ""}
+            <UiIcon k="dot" size={7} />{displayLabel(displayMode)}{saved ? " · 已存" : ""}
           </button>
         } />
       <canvas ref={canvasRef} width={640} height={300}

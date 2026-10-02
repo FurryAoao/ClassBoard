@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { usePersistentState } from "../lib/store-helpers";
 import CardHeader from "../components/CardHeader";
+import { useDisplay, displayLabel } from "../store/useDisplay";
 
-/** 多屏 / 投屏控制：状态记录 + 多显示器检测 */
+/** 多屏 / 投屏控制：状态记录 + 多显示器检测（与白板投屏标记同一来源） */
 export default function DisplayCard() {
-  const [mode, setMode] = usePersistentState<"mirror" | "extend" | "off">("display:mode", "off");
+  const { mode, setMode } = useDisplay();
   const [monitors, setMonitors] = useState<string[]>([]);
   const [msg, setMsg] = useState("");
   const detect = async () => {
@@ -24,7 +24,7 @@ export default function DisplayCard() {
       setMonitors(out.length ? out : ["检测到显示器，但读不到尺寸"]);
     } catch { setMonitors([]); setMsg("浏览器预览读不到显示器信息，桌面端可用"); }
   };
-  const label = mode === "mirror" ? "镜像投屏中" : mode === "extend" ? "扩展屏讲课" : "未投屏";
+  const label = displayLabel(mode);
   return (
     <div className="space-y-2">
       <CardHeader icon="display" title="投屏控制" sub={label} />
