@@ -9,6 +9,7 @@ const APP_VERSION: string = pkg.version;
 
 /** 应用内更新日志（与 README 版本演进表同源，保持简短） */
 const CHANGELOG: [string, string][] = [
+  ["v2.5 铃声收编", "设置页铃声开关，备份不带旧账"],
   ["v2.4 待办带走", "待办导出文本文件"],
   ["v2.3 铃留痕", "上次铃声是哪节"],
   ["v2.2 预备铃", "课前几分钟先响一声"],
@@ -46,6 +47,7 @@ export default function SettingsView() {
   const [json, setJson] = useState("");
   const [msg, setMsg] = useState("");
   const [soundOn, setSoundOnState] = useState(true);
+  const [bellOn, setBellOnState] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const onCount = FEATURE_ORDER.filter((k) => enabled[k]).length;
   const [autoOn, setAutoOn] = useState<boolean | null>(null);
@@ -56,6 +58,7 @@ export default function SettingsView() {
   }, []);
   useEffect(() => {
     import("../lib/sound").then(({ isSoundOn }) => setSoundOnState(isSoundOn()));
+    import("../lib/class-bell").then(({ isBellOn }) => setBellOnState(isBellOn()));
   }, []);
 
   const downloadFile = async () => {
@@ -133,6 +136,29 @@ export default function SettingsView() {
           <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${autoOn ? "left-[20px]" : "left-[2px]"}`} />
         </button>
       </label>
+      <div className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
+        <span className="w-7 h-7 rounded-[10px] flex items-center justify-center shrink-0 bg-violet-500/10 text-violet-600 dark:text-violet-400">
+          <FeatureIcon k="schedule" size={15} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[12px] font-bold text-neutral-800 dark:text-neutral-100">上下课铃</span>
+          <span className="block text-[10px] text-neutral-400 truncate">按课表到点自动响，课表页可调预备铃试听</span>
+        </span>
+        <button
+          onClick={async (e) => {
+            e.preventDefault();
+            const { setBellOn } = await import("../lib/class-bell");
+            const next = !bellOn;
+            setBellOn(next);
+            setBellOnState(next);
+            setMsg(next ? "已开启上下课铃" : "已关闭上下课铃");
+          }}
+          className={`w-10 h-[22px] rounded-full relative transition-colors shrink-0 ${bellOn ? "bg-emerald-500" : "bg-neutral-300 dark:bg-neutral-600"}`}
+          title={bellOn ? "点击关闭" : "点击开启"}
+        >
+          <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${bellOn ? "left-[20px]" : "left-[2px]"}`} />
+        </button>
+      </div>
       <div className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
         <span className="w-7 h-7 rounded-[10px] flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <FeatureIcon k="timer" size={15} />

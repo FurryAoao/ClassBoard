@@ -135,8 +135,8 @@ export const useSettings = create<SettingsState>((set, get) => ({
       const k = localStorage.key(i);
       // 白板位图 base64 太大，不进 JSON 备份（画布本机仍保留）；
       // 窗口位置是本机相关的，不进备份（换机器导入不会飞出屏幕）；
-      // 铃声已响标记是“今天响过”的临时账，进备份第二天会误判为已响
-      if (k?.startsWith("cb:") && k !== "cb:board:img" && k !== "cb:pos" && k !== "cb:bell:rung") {
+      // 铃声已响标记/上次铃声是“今天响过”的临时账，进备份第二天会误判为已响
+      if (k?.startsWith("cb:") && k !== "cb:board:img" && k !== "cb:pos" && k !== "cb:bell:rung" && k !== "cb:bell:last") {
         try { dump[k] = JSON.parse(localStorage.getItem(k)!); }
         catch { dump[k] = localStorage.getItem(k); }
       }
@@ -150,8 +150,8 @@ export const useSettings = create<SettingsState>((set, get) => ({
     const keys = Object.keys(dump);
     const hasData = keys.some((k) => k.startsWith("cb:") || k === "enabled" || k === "ui");
     if (!hasData) throw new Error("备份为空，没有可导入的数据");
-    // 旧版备份（无 version 字段）照常导入；大体积/本机相关键跳过
-    const SKIP = new Set(["cb:board:img", "cb:pos", "cb:app", "cb:version", "cb:exportedAt", "cb:bell:rung"]);
+    // 旧版备份（无 version 字段）照常导入；大体积/本机相关键/铃声临时账跳过
+    const SKIP = new Set(["cb:board:img", "cb:pos", "cb:app", "cb:version", "cb:exportedAt", "cb:bell:rung", "cb:bell:last"]);
     for (const [k, v] of Object.entries(dump)) {
       if (k === "ui" || k === "cb:ui") continue;
       if (k === "app" || k === "version" || k === "exportedAt") continue;
