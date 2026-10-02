@@ -40,13 +40,14 @@ export default function PickerCard() {
     } catch { setRosterMsg("导入失败，再试一次"); }
     setTimeout(() => setRosterMsg(""), 2500);
   };
-  // 考勤导出：走统一存文件帮手，桌面端弹保存框，浏览器直接下载
+  // 考勤导出：走统一存文件帮手，桌面端弹保存框，浏览器直接下载；不开课也能导
   const exportCsv = async () => {
-    if (!activeCourse || !names.length) return;
+    if (!names.length) return;
     try {
       const lines = ["\uFEFF姓名,状态"];
       names.forEach((n) => lines.push(`${n},${check[n] ?? "未点"}`));
-      const where = await saveFile(stampName(`${activeCourse.name}-考勤`, "csv"), lines.join("\n"));
+      const label = activeCourse ? activeCourse.name : new Date().toISOString().slice(0, 10);
+      const where = await saveFile(stampName(`${label}-考勤`, "csv"), lines.join("\n"));
       setCsvMsg(where ? `已导出 ${names.length} 人${where.length > 24 ? "到 …" + where.slice(-24) : ""}` : "已取消");
     } catch { setCsvMsg("导出失败，再试一次"); }
     setTimeout(() => setCsvMsg(""), 2500);
@@ -100,21 +101,14 @@ export default function PickerCard() {
     if (!next) delete c2[n]; else c2[n] = next;
     setCheck(c2);
   };
-  // 座位点击：上课中考勤打标，非上课中直接点中该学生
+  // 座位点击：不开课也能打考勤，点一下循环打标
   const onSeatClick = (n: string) => {
-    if (activeCourse) cycleCheck(n);
-    else {
-      setResult(n);
-      if (fair) setPicked((prev) => [...prev, n]);
-    }
+    cycleCheck(n);
   };
   const seatColor = (n: string) => {
-    if (activeCourse) {
-      if (check[n] === "到") return "bg-emerald-500 text-white border-emerald-500";
-      if (check[n] === "缺") return "bg-red-500 text-white border-red-500";
-      if (check[n] === "假") return "bg-amber-400 text-black border-amber-400";
-      return "bg-white/70 dark:bg-white/[0.05] text-neutral-700 dark:text-neutral-200 border-black/10 dark:border-white/10";
-    }
+    if (check[n] === "到") return "bg-emerald-500 text-white border-emerald-500";
+    if (check[n] === "缺") return "bg-red-500 text-white border-red-500";
+    if (check[n] === "假") return "bg-amber-400 text-black border-amber-400";
     if (result === n) return "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/30";
     return "bg-white/70 dark:bg-white/[0.05] text-neutral-700 dark:text-neutral-200 border-black/10 dark:border-white/10";
   };
@@ -139,20 +133,18 @@ export default function PickerCard() {
           ) : <span className={`text-3xl font-black tracking-tight text-neutral-900 dark:text-white ${rolling ? "animate-pulse" : "animate-pop-in"}`}>{result}</span>}
       </div>
       {groups}
-      {activeCourse && (
-        <div className="px-3 py-2 rounded-2xl bg-violet-600/10 border border-violet-500/25 text-[11px] font-bold text-violet-700 dark:text-violet-300 space-y-1.5">
+      {names.length > 0 && (
+        <div className="px-3 py-2 rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] text-[11px] font-bold text-neutral-600 dark:text-neutral-300 space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="flex-1 truncate">上课中：{activeCourse.name} · 点到谁记谁</span>
+            <span className="flex-1 truncate">{activeCourse ? `上课中：${activeCourse.name} · 点到谁记谁` : "未开课也能记考勤：点名单打标，随时导出"}</span>
             <button className="shrink-0 px-2.5 py-1 rounded-full bg-violet-600 text-white text-[10px] font-black" onClick={() => void exportCsv()}>导出考勤 CSV</button>
           </div>
-          {names.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="flex-1 truncate font-normal text-neutral-500">
-                到 {(Object.values(check).filter((v) => v === "到").length) || 0} · 缺 {(Object.values(check).filter((v) => v === "缺").length) || 0} · 假 {(Object.values(check).filter((v) => v === "假").length) || 0}
-              </span>
-              <button className="shrink-0 text-[10px] font-black text-violet-600 hover:underline" onClick={() => void copyAbsence()}>复制缺勤名单</button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="flex-1 truncate font-normal text-neutral-500">
+              到 {(Object.values(check).filter((v) => v === "到").length) || 0} · 缺 {(Object.values(check).filter((v) => v === "缺").length) || 0} · 假 {(Object.values(check).filter((v) => v === "假").length) || 0}
+            </span>
+            <button className="shrink-0 text-[10px] font-black text-violet-600 hover:underline" onClick={() => void copyAbsence()}>复制缺勤名单</button>
+          </div>
           {(csvMsg || copyMsg) && <div className="text-[10px] font-bold text-violet-600">{csvMsg || copyMsg}</div>}
         </div>
       )}
@@ -175,7 +167,7 @@ export default function PickerCard() {
           )}
         </div>
       )}
-      {activeCourse && names.length > 0 && (
+      {names.length > 0 && (
         <div className="flex gap-1.5 px-0.5">
           {(["到", "缺", "假"] as const).map((s) => (
             <button key={s} className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500" title={`${s}：点下面名单打标记`}>
@@ -186,32 +178,30 @@ export default function PickerCard() {
           <button className="ml-auto text-[10px] text-neutral-400 hover:text-red-500" onClick={() => setCheck({})}>清标记</button>
         </div>
       )}
-      {seatMode && names.length > 0 ? (
+      {names.length > 0 && (seatMode ? (
         <div className="space-y-1.5">
           <div className="mx-auto w-24 text-center text-[10px] font-black tracking-widest text-neutral-400 border border-dashed border-black/15 dark:border-white/15 rounded-lg py-1">讲 台</div>
           <div className="grid gap-1.5 max-h-56 overflow-y-auto px-0.5" style={{ gridTemplateColumns: `repeat(${typeof cols === "number" ? cols : 6}, minmax(0,1fr))` }}>
             {names.map((n) => (
-              <button key={n} title={activeCourse ? "点一下循环：未点→到→缺→假→未点" : "点一下选中该学生"}
+              <button key={n} title="点一下循环：未点→到→缺→假→未点"
                 onClick={() => onSeatClick(n)}
                 className={`min-w-0 px-1 py-1.5 rounded-lg border text-[11px] font-bold truncate transition-all active:scale-[0.95] ${seatColor(n)}`}>
-                {n}{activeCourse && check[n] ? `·${check[n]}` : ""}
-              </button>
-            ))}
-          </div>
-          <div className="text-[10px] text-neutral-400 text-center">{activeCourse ? "点座位打考勤（到/缺/假循环）" : "点座位直接选中，非上课模式"}</div>
-        </div>
-      ) : (
-        activeCourse && names.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto px-0.5">
-            {names.map((n) => (
-              <button key={n} title="点一下循环：未点→到→缺→假→未点" onClick={() => cycleCheck(n)}
-                className={`text-[11px] px-2 py-1 rounded-full font-bold transition-all ${check[n] === "到" ? "bg-emerald-500 text-white" : check[n] === "缺" ? "bg-red-500 text-white" : check[n] === "假" ? "bg-amber-400 text-black" : "bg-black/[0.05] dark:bg-white/10 text-neutral-500"}`}>
                 {n}{check[n] ? `·${check[n]}` : ""}
               </button>
             ))}
           </div>
-        )
-      )}
+          <div className="text-[10px] text-neutral-400 text-center">点座位打考勤（到/缺/假循环），不开课也能记</div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto px-0.5">
+          {names.map((n) => (
+            <button key={n} title="点一下循环：未点→到→缺→假→未点" onClick={() => cycleCheck(n)}
+              className={`text-[11px] px-2 py-1 rounded-full font-bold transition-all ${check[n] === "到" ? "bg-emerald-500 text-white" : check[n] === "缺" ? "bg-red-500 text-white" : check[n] === "假" ? "bg-amber-400 text-black" : "bg-black/[0.05] dark:bg-white/10 text-neutral-500"}`}>
+              {n}{check[n] ? `·${check[n]}` : ""}
+            </button>
+          ))}
+        </div>
+      ))}
       {picked.length > 0 && !Array.isArray(result) && (
         <div className="flex items-center gap-1.5 px-1">
           <span className="text-[10px] text-neutral-400 flex-1 truncate">已点：{picked.slice(-6).join("、")}{picked.length > 6 ? ` 等 ${picked.length} 人` : ""}</span>
