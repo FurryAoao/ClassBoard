@@ -21,6 +21,23 @@ export default function ScheduleCard() {
   const [start, setStart] = useState("08:00"); const [end, setEnd] = useState("08:45");
   const [room, setRoom] = useState("");
   const [icsMsg, setIcsMsg] = useState("");
+  const [addMsg, setAddMsg] = useState("");
+  // 同一天时间重叠即撞车：start < c.end && c.start < end（HH:MM 字符串可直接比）
+  const findClash = (dayIdx: number, s: string, e: string) =>
+    courses.filter((c) => c.day === dayIdx && s < c.end && c.start < e);
+  const addCourse = () => {
+    setAddMsg("");
+    if (!name.trim()) { setAddMsg("课程名不能为空"); return; }
+    if (start >= end) { setAddMsg("开始时间要早于结束时间"); return; }
+    const clash = findClash(day, start, end);
+    if (clash.length) {
+      const c = clash[0];
+      setAddMsg(`时间撞了：${c.name} ${c.start}-${c.end}，已拦下没加`);
+      return;
+    }
+    setCourses([...courses, { id: uid(), day, start, end, name: name.trim(), room: room.trim() }]);
+    setName(""); setRoom("");
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const now = useNow(true);
 
@@ -103,12 +120,19 @@ export default function ScheduleCard() {
         }
       }
       if (!out.length) { setIcsMsg("未从 ICS 读到课程事件"); return; }
-      // 按“每周重复”理解：同一 weekday+start 去重后并入
+      // 按“每周重复”理解：同一 weekday+start 去重后并入；与现有课表撞时间的跳过
       const key = (c: Course) => `${c.day}-${c.start}-${c.name}`;
       const have = new Set(courses.map(key));
-      const fresh = out.filter((c) => !have.has(key(c)));
-      setCourses([...courses, ...fresh]);
-      setIcsMsg(`已导入 ${fresh.length} 节（文件中共 ${out.length} 个事件）`);
+      const clashWith = (pool: Course[], c: Course) => pool.some((x) => x.day === c.day && c.start < x.end && x.start < c.end);
+      const merged: Course[] = [...courses];
+      let clashN = 0;
+      const fresh = out.filter((c) => {
+        if (have.has(key(c)) || clashWith(merged, c)) { if (!have.has(key(c))) clashN++; return false; }
+        merged.push(c);
+        return true;
+      });
+      setCourses(merged);
+      setIcsMsg(`已导入 ${fresh.length} 节（文件中共 ${out.length} 个事件${clashN ? `，${clashN} 节撞时间已跳过` : ""}）`);
     } catch { setIcsMsg("ICS 解析失败"); }
   };
 
@@ -231,15 +255,12 @@ export default function ScheduleCard() {
         <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className="cb-input !w-[76px] text-[11px] !px-1" />
         <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className="cb-input !w-[76px] text-[11px] !px-1" />
       </div>
+      {addMsg && <div className="text-[10px] font-bold text-red-500 px-1">{addMsg}</div>}
       <div className="flex gap-1.5">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="课程名" className="cb-input" />
         <input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="教室" className="cb-input !w-16 !px-2" />
-        <button className="cb-btn-primary !px-3.5 flex items-center"
-          onClick={() => {
-            if (!name.trim()) return;
-            setCourses([...courses, { id: uid(), day, start, end, name: name.trim(), room: room.trim() }]);
-            setName(""); setRoom("");
-          }}><UiIcon k="plus" size={13} /></button>
+        <button className="cb-btn-primary !px-3.5 flex items-center" title="加课：时间撞了自动拦下"
+          onClick={addCourse}><UiIcon k="plus" size={13} /></button>
       </div>
     </div>
   );
