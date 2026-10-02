@@ -11,9 +11,11 @@ export default function FocusCard() {
   const now = useNow(true, 500);
   const nowMs = now.getTime();
 
-  // 每 tick 结算一次：后台跑完切回来直接看到轮数+1
+  // 每 tick 结算一次：后台跑完切回来直接看到轮数+1并哔声提醒
   useEffect(() => {
-    settleFocusIfExpired(Date.now());
+    if (settleFocusIfExpired(Date.now())) {
+      import("../lib/sound").then(({ beep }) => beep(2, 660));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowMs]);
 

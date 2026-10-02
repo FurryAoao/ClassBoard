@@ -25,9 +25,11 @@ export default function TimerCard() {
   const now = useNow(true, 500);
   const nowMs = now.getTime();
 
-  // 每 tick 结算一次：后台跑完切回来直接看到“时间到”
+  // 每 tick 结算一次：后台跑完切回来直接看到“时间到”并哔声提醒
   useEffect(() => {
-    settleTimerIfExpired(Date.now());
+    if (settleTimerIfExpired(Date.now())) {
+      import("../lib/sound").then(({ beep }) => beep(3, 880));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowMs]);
 

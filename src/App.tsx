@@ -49,12 +49,14 @@ export default function App() {
     }, HOVER_CLOSE_DELAY);
   };
 
-  // 计时/专注后台结算：倒计时在切卡/收起时跑完，这里统一冻结，不丢状态
+  // 计时/专注后台结算：倒计时在切卡/收起时跑完，这里统一冻结并哔声提醒，不丢状态
   useEffect(() => {
     const id = window.setInterval(() => {
       const now = Date.now();
-      settleTimerIfExpired(now);
-      settleFocusIfExpired(now);
+      void import("./lib/sound").then(({ beep }) => {
+        if (settleTimerIfExpired(now)) beep(3, 880);
+        else if (settleFocusIfExpired(now)) beep(2, 660);
+      });
     }, 1000);
     return () => window.clearInterval(id);
   }, []);

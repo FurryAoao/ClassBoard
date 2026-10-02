@@ -9,6 +9,7 @@ const APP_VERSION: string = pkg.version;
 
 /** 应用内更新日志（与 README 版本演进表同源，保持简短） */
 const CHANGELOG: [string, string][] = [
+  ["v1.9 听得见", "到点哔声提醒，设置页可开关"],
   ["v1.8 课表防撞", "撞时间自动拦，导入跳过计数"],
   ["v1.7 一眼在手", "首页实时角标，胶囊专注倒计时"],
   ["v1.6 考勤收尾", "考勤保存框导出，缺勤名单复制发群"],
@@ -39,6 +40,7 @@ export default function SettingsView() {
   const { enabled, toggleFeature, exportAll, importAll } = useSettings();
   const [json, setJson] = useState("");
   const [msg, setMsg] = useState("");
+  const [soundOn, setSoundOnState] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const onCount = FEATURE_ORDER.filter((k) => enabled[k]).length;
   const [autoOn, setAutoOn] = useState<boolean | null>(null);
@@ -46,6 +48,9 @@ export default function SettingsView() {
   useEffect(() => {
     if (!isTauri()) { setAutoOn(false); return; }
     import("@tauri-apps/plugin-autostart").then(({ isEnabled }) => isEnabled().then(setAutoOn).catch(() => setAutoOn(false)));
+  }, []);
+  useEffect(() => {
+    import("../lib/sound").then(({ isSoundOn }) => setSoundOnState(isSoundOn()));
   }, []);
 
   const downloadFile = async () => {
@@ -123,6 +128,29 @@ export default function SettingsView() {
           <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${autoOn ? "left-[20px]" : "left-[2px]"}`} />
         </button>
       </label>
+      <div className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
+        <span className="w-7 h-7 rounded-[10px] flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <FeatureIcon k="timer" size={15} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[12px] font-bold text-neutral-800 dark:text-neutral-100">到点哔声提醒</span>
+          <span className="block text-[10px] text-neutral-400 truncate">计时/专注跑完响三声，收起也能听见</span>
+        </span>
+        <button
+          onClick={async (e) => {
+            e.preventDefault();
+            const { setSoundOn } = await import("../lib/sound");
+            const next = !soundOn;
+            setSoundOn(next);
+            setSoundOnState(next);
+            setMsg(next ? "已开启到点提醒" : "已关闭到点提醒");
+          }}
+          className={`w-10 h-[22px] rounded-full relative transition-colors shrink-0 ${soundOn ? "bg-emerald-500" : "bg-neutral-300 dark:bg-neutral-600"}`}
+          title={soundOn ? "点击关闭" : "点击开启"}
+        >
+          <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${soundOn ? "left-[20px]" : "left-[2px]"}`} />
+        </button>
+      </div>
       <div className="flex items-center gap-2.5 pl-2 pr-2.5 py-2 rounded-2xl bg-white/60 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
         <span className="w-7 h-7 rounded-[10px] flex items-center justify-center shrink-0 bg-sky-500/10 text-sky-600 dark:text-sky-400">
           <UiIcon k="logo" size={15} />

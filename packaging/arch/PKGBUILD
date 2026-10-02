@@ -3,7 +3,7 @@
 # 本地编译是最稳的；Ubuntu 打的 AppImage 在 Arch 上常因缺库跑不起来）
 pkgname=classboard-git
 _pkgname=ClassBoard
-pkgver=1.8.0.r0
+pkgver=1.9.0.r0
 pkgrel=1
 pkgdesc="师者屏隅轻辅，悬停即启，一窗百用，默认唯时，诸能可择。"
 arch=('x86_64')
@@ -18,7 +18,7 @@ sha256sums=('SKIP')
 
 pkgver() {
   cd "$_pkgname"
-  printf "1.8.0.r%s" "$(git rev-list --count HEAD)"
+  printf "1.9.0.r%s" "$(git rev-list --count HEAD)"
 }
 
 build() {
