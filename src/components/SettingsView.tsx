@@ -9,6 +9,7 @@ const APP_VERSION: string = pkg.version;
 
 /** 应用内更新日志（与 README 版本演进表同源，保持简短） */
 const CHANGELOG: [string, string][] = [
+  ["v2.7 名单快导", "点名名单文件导入导出"],
   ["v2.6 胶囊见铃", "收起也看得见铃声动态"],
   ["v2.5 铃声收编", "设置页铃声开关，备份不带旧账"],
   ["v2.4 待办带走", "待办导出文本文件"],

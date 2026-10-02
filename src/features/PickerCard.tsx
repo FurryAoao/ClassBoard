@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
@@ -20,6 +20,26 @@ export default function PickerCard() {
   const [cols, setCols] = usePersistentState("picker:cols", 6);
   const [csvMsg, setCsvMsg] = useState("");
   const [copyMsg, setCopyMsg] = useState("");
+  const [rosterMsg, setRosterMsg] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  // 名单快导：从 txt/csv 文件读名单，自动按行/逗号/空格拆，去重并入
+  const importRoster = async (f: File) => {
+    try {
+      const text = await f.text();
+      const incoming = text.split(/[\n,，、\s;；]+/).map((s) => s.trim()).filter(Boolean);
+      if (!incoming.length) { setRosterMsg("文件里没读到名字"); return; }
+      const seen = new Set(names);
+      const fresh: string[] = [];
+      for (const n of incoming) {
+        if (!seen.has(n)) { seen.add(n); fresh.push(n); }
+      }
+      if (!fresh.length) { setRosterMsg("名单都已在，无新增"); return; }
+      setNames([...names, ...fresh]);
+      setPicked([]);
+      setRosterMsg(`已导入 ${fresh.length} 人（文件共 ${incoming.length} 个名字）`);
+    } catch { setRosterMsg("导入失败，再试一次"); }
+    setTimeout(() => setRosterMsg(""), 2500);
+  };
   // 考勤导出：走统一存文件帮手，桌面端弹保存框，浏览器直接下载
   const exportCsv = async () => {
     if (!activeCourse || !names.length) return;
@@ -212,6 +232,20 @@ export default function PickerCard() {
       <textarea value={names.join("\n")} onChange={(e) => { setNames(e.target.value.split(/[\n,，、\s]+/).map((s) => s.trim()).filter(Boolean)); setPicked([]); }}
         placeholder="粘贴全班名单（一行一人，也可用逗号/空格分隔），自动保存" rows={3}
         className="cb-input resize-none !py-2.5" />
+      <input ref={fileRef} type="file" accept=".txt,.csv,text/plain,text/csv" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) void importRoster(f); e.target.value = ""; }} />
+      {rosterMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{rosterMsg}</div>}
+      <div className="flex gap-1.5">
+        <button className="cb-btn-ghost flex-1 !text-[11px]" title="从 txt/csv 文件读名单，自动去重并入" onClick={() => fileRef.current?.click()}>从文件导入名单</button>
+        <button className="cb-btn-ghost" title="导出当前名单为 txt，换班/换机直接带走" onClick={() => void (async () => {
+          if (!names.length) { setRosterMsg("没有名单可导出"); setTimeout(() => setRosterMsg(""), 2000); return; }
+          try {
+            const where = await saveFile(stampName("classboard-roster", "txt"), `\uFEFF${names.join("\n")}\n`);
+            setRosterMsg(where ? `已导出 ${names.length} 人` : "已取消");
+          } catch { setRosterMsg("导出失败，再试一次"); }
+          setTimeout(() => setRosterMsg(""), 2500);
+        })()}>导出名单</button>
+      </div>
       <div className="flex gap-1.5">
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="单个添加姓名" className="cb-input" />
         <button className="cb-btn-accent !px-3.5 flex items-center" onClick={() => { if (draft.trim()) { setNames([...names, draft.trim()]); setDraft(""); } }}><UiIcon k="plus" size={13} /></button>
