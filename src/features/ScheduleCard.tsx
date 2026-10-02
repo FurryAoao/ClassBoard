@@ -95,6 +95,19 @@ export default function ScheduleCard() {
     } catch { setIcsMsg("导出失败，再试一次"); }
   };
   const short = (p: string) => (p.length > 40 ? "…" + p.slice(-40) : p);
+  // 课表一键发群：把整周课表拼成文本，复制发群/发家长群
+  const copyWeek = async () => {
+    if (!courses.length) { setIcsMsg("课表是空的，先加几节课"); return; }
+    const zh = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    const lines = [`ClassBoard 课表（共 ${courses.length} 节）`];
+    weekGroups.forEach((g) => {
+      if (!g.list.length) return;
+      const one = g.list.map((c) => `${c.start}-${c.end} ${c.name}${c.room ? `@${c.room}` : ""}`).join("；");
+      lines.push(`${zh[g.day]}：${one}`);
+    });
+    try { await navigator.clipboard.writeText(lines.join("\n")); setIcsMsg(`已复制 ${courses.length} 节，发群直接粘贴`); }
+    catch { setIcsMsg("复制失败：请手动长按复制"); }
+  };
 
   const importIcs = async (f: File) => {
     try {
@@ -188,6 +201,8 @@ export default function ScheduleCard() {
       <CardHeader icon="schedule" title="课程表" sub={`今天${weekZh(now.getDay())} · 本周 ${courses.length} 节`}
         right={
           <span className="flex gap-1">
+            <button onClick={() => void copyWeek()} title="把整周课表拼成文本，复制发群"
+              className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">发群</button>
             <button onClick={() => void exportIcs()} title="把本周课表存成 ICS，手机日历可导入"
               className="cb-chip !text-[10px] bg-black/[0.05] dark:bg-white/10 text-neutral-500 hover:bg-black/[0.09] transition-colors">ICS 导出</button>
             <button onClick={() => fileRef.current?.click()} title="从 ICS 日历文件导入"

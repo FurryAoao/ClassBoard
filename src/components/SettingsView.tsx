@@ -9,6 +9,7 @@ const APP_VERSION: string = pkg.version;
 
 /** 应用内更新日志（与 README 版本演进表同源，保持简短） */
 const CHANGELOG: [string, string][] = [
+  ["v3.0 课表发群", "整周课表一键复制发群"],
   ["v2.9 考勤不挑课", "不开课也能记考勤"],
   ["v2.8 一键全到", "考勤先全到再改缺假"],
   ["v2.7 名单快导", "点名名单文件导入导出"],
