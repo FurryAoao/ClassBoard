@@ -23,8 +23,9 @@ export default function ScheduleCard() {
   const [icsMsg, setIcsMsg] = useState("");
   const [addMsg, setAddMsg] = useState("");
   const [bellOn, setBellOnState] = useState(true);
+  const [bellLead, setBellLeadState] = useState(0);
   useEffect(() => {
-    import("../lib/class-bell").then(({ isBellOn }) => setBellOnState(isBellOn()));
+    import("../lib/class-bell").then(({ isBellOn, getBellLead }) => { setBellOnState(isBellOn()); setBellLeadState(getBellLead()); });
   }, []);
   // 同一天时间重叠即撞车：start < c.end && c.start < end（HH:MM 字符串可直接比）
   const findClash = (dayIdx: number, s: string, e: string) =>
@@ -185,6 +186,19 @@ export default function ScheduleCard() {
       {icsMsg && <div className="text-[10px] font-bold text-sky-600 px-1">{icsMsg}</div>}
       <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-black/[0.04] dark:bg-white/[0.05]">
         <span className="flex-1 text-[11px] font-bold text-neutral-600 dark:text-neutral-300">上下课铃 · 到点自动响</span>
+        <div className="flex items-center gap-1 shrink-0" title="预备铃：上课前几分钟先响一声">
+          {[0, 3, 5, 10].map((m) => (
+            <button key={m}
+              onClick={async () => {
+                const { setBellLead } = await import("../lib/class-bell");
+                setBellLead(m);
+                setBellLeadState(m);
+              }}
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-colors ${bellLead === m ? "bg-sky-500 text-white" : "text-neutral-400 hover:text-neutral-600"}`}>
+              {m === 0 ? "不预备" : `${m}分`}
+            </button>
+          ))}
+        </div>
         <button className="text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0" title="试听上课铃（高音四声）"
           onClick={() => import("../lib/sound").then(({ beep }) => beep(4, 988))}>试上课</button>
         <button className="text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0" title="试听下课铃（低音两声）"

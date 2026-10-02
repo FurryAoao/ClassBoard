@@ -59,7 +59,8 @@ export default function App() {
         void import("./lib/class-bell").then(({ checkClassBell }) => {
           const hit = checkClassBell(new Date(now));
           if (!hit) return;
-          if (hit.kind === "start") beep(4, 988);
+          if (hit.kind === "pre") beep(2, 784);
+          else if (hit.kind === "start") beep(4, 988);
           else beep(2, 523);
         });
       });

@@ -14,7 +14,25 @@ export function setBellOn(on: boolean) {
   import("./store-helpers").then(({ kvSet }) => kvSet("bell:on", JSON.stringify(on)));
 }
 
-export function checkClassBell(now: Date): { kind: "start" | "end"; name: string } | null {
+/** 预备铃提前几分钟：0=关，只认 0/3/5/10 四档，脏数据回落为 0 */
+export function getBellLead(): number {
+  try {
+    const raw = localStorage.getItem("cb:bell:lead");
+    if (raw === null) return 0;
+    const n = Number(JSON.parse(raw));
+    return n === 3 || n === 5 || n === 10 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function setBellLead(mins: number) {
+  const n = mins === 3 || mins === 5 || mins === 10 ? mins : 0;
+  try { localStorage.setItem("cb:bell:lead", JSON.stringify(n)); } catch { /* ignore */ }
+  import("./store-helpers").then(({ kvSet }) => kvSet("bell:lead", JSON.stringify(n)));
+}
+
+export function checkClassBell(now: Date): { kind: "pre" | "start" | "end"; name: string } | null {
   try {
     // 总开关：关了哔声，铃声也不打扰；铃声自己也可独立关
     try {
@@ -33,6 +51,16 @@ export function checkClassBell(now: Date): { kind: "start" | "end"; name: string
     if (!Array.isArray(courses) || !courses.length) return null;
     const day = (now.getDay() + 6) % 7;
     const t = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const lead = getBellLead();
+    const shiftHM = (hm: string, deltaMin: number): string | null => {
+      try {
+        const [h, m] = String(hm).split(":").map(Number);
+        if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+        const total = h * 60 + m + deltaMin;
+        if (total < 0 || total >= 24 * 60) return null;
+        return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+      } catch { return null; }
+    };
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     let rung: Record<string, 1> = {};
     try {
@@ -55,6 +83,17 @@ export function checkClassBell(now: Date): { kind: "start" | "end"; name: string
     };
     for (const c of courses) {
       if (!c || c.day !== day) continue;
+      // 预备铃：上课 lead 分钟前先响一声（每节每天一次），方便提前进教室
+      if (lead > 0) {
+        const preT = shiftHM(c.start, -lead);
+        if (preT && preT === t) {
+          const id = `${dateStr}|${c.id}|pre`;
+          if (!rung[id]) {
+            mark(id);
+            return { kind: "pre", name: typeof c.name === "string" ? c.name : "" };
+          }
+        }
+      }
       if (c.start === t) {
         const id = `${dateStr}|${c.id}|start`;
         if (!rung[id]) {
