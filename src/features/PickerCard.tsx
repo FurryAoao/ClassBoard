@@ -15,7 +15,7 @@ export default function PickerCard() {
   const [result, setResult] = useState<string | string[] | null>(null);
   const [rolling, setRolling] = useState(false);
   const [groupN, setGroupN] = useState(4);
-  const [picked, setPicked] = usePersistentState<string[]>("picker:picked", []);
+  const [picked, setPicked, pickedLoaded] = usePersistentState<string[]>("picker:picked", []);
   const [fair, setFair] = usePersistentState("picker:fair", true);
   const [seatMode, setSeatMode] = usePersistentState("picker:seat", false);
   const [cols, setCols] = usePersistentState("picker:cols", 6);
@@ -23,14 +23,14 @@ export default function PickerCard() {
   const [copyMsg, setCopyMsg] = useState("");
   const [rosterMsg, setRosterMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  // 考勤隔天清：每天第一次打开自动清空昨日打标，名单保留（跟上课态隔天清同理）
+  // 考勤隔天清：每天第一次打开自动清空昨日打标 + 公平轮次，名单保留（跟上课态隔天清同理）
   useEffect(() => {
-    if (!checkLoaded || !dateLoaded) return;
+    if (!checkLoaded || !dateLoaded || !pickedLoaded) return;
     const d = new Date();
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (!checkDate) { setCheckDate(today); return; }
-    if (checkDate !== today) { setCheck({}); setCheckDate(today); }
-  }, [checkLoaded, dateLoaded]);
+    if (checkDate !== today) { setCheck({}); setPicked([]); setCheckDate(today); }
+  }, [checkLoaded, dateLoaded, pickedLoaded]);
   // 名单快导：从 txt/csv 文件读名单，自动按行/逗号/空格拆，去重并入
   const importRoster = async (f: File) => {
     try {
