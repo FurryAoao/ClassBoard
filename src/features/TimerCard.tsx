@@ -20,7 +20,7 @@ export default function TimerCard() {
   const {
     mode, setMode, baseSecs, setBaseSecs,
     running, runningSince, lesson, setLesson,
-    minsInput, setMinsInput, startLesson, start, pause, reset,
+    minsInput, setMinsInput, startLesson, start, pause, reset, addSecs,
   } = useTimer();
   const now = useNow(true, 500);
   const nowMs = now.getTime();
@@ -88,6 +88,10 @@ export default function TimerCard() {
         </div>
       )}
       <div className="flex justify-center gap-2">
+        {(mode === "down" && (running || baseSecs < 3 * 3600)) && (
+          <button onClick={() => addSecs(5 * 60)} title="拖堂再讲 5 分钟，不停表"
+            className="cb-btn-ghost !rounded-full px-4">加 5 分钟</button>
+        )}
         <button onClick={() => { if (running) pause(); else start(); }}
           className={`text-[13px] px-8 py-2.5 rounded-full font-bold text-white shadow-sm active:scale-[0.98] transition-all ${running ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/25"}`}>
           {running ? "暂停" : "开始"}

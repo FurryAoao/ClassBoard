@@ -20,6 +20,8 @@ interface TimerState {
   reset: (toSecs: number) => void;
   /** 时间到后点开始 = 按当前设定再来一次 */
   restart: () => void;
+  /**  running 中一键加钟：拖堂再讲 5 分钟，直接在原基准上加，不停表 */
+  addSecs: (delta: number) => void;
 }
 
 interface Persisted { mode: TimerMode; baseSecs: number; running: boolean; runningSince: number | null; lesson: string | null; minsInput: string; }
@@ -128,6 +130,16 @@ export const useTimer = create<TimerState>((set, get) => ({
   },
   reset: (toSecs) => {
     set({ running: false, runningSince: null, lesson: null, baseSecs: toSecs });
+    const n = get();
+    save({ mode: n.mode, baseSecs: n.baseSecs, running: n.running, runningSince: n.runningSince, lesson: n.lesson, minsInput: n.minsInput });
+  },
+  addSecs: (delta) => {
+    const st = get();
+    if (st.mode !== "down") return;
+    const cur = displaySecs(st, Date.now());
+    const next = Math.max(1, Math.min(3 * 3600, cur + delta));
+    if (st.running) set({ baseSecs: next, runningSince: Date.now() });
+    else set({ baseSecs: next });
     const n = get();
     save({ mode: n.mode, baseSecs: n.baseSecs, running: n.running, runningSince: n.runningSince, lesson: n.lesson, minsInput: n.minsInput });
   },

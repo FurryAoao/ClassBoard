@@ -9,6 +9,7 @@ const APP_VERSION: string = pkg.version;
 
 /** 应用内更新日志（与 README 版本演进表同源，保持简短） */
 const CHANGELOG: [string, string][] = [
+  ["v3.7 计时加钟", "跑着也能加 5 分钟"],
   ["v3.6 名单防重", "粘贴添加自动去重"],
   ["v3.5 轮次同清", "隔天轮次一起清零"],
   ["v3.4 考勤隔天清", "每天打标自动清零"],
