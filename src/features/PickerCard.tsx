@@ -233,7 +233,7 @@ export default function PickerCard() {
             }}>分组抽</button>
         </div>
       </div>
-      <textarea value={names.join("\n")} onChange={(e) => { setNames(e.target.value.split(/[\n,，、\s]+/).map((s) => s.trim()).filter(Boolean)); setPicked([]); }}
+      <textarea value={names.join("\n")} onChange={(e) => { const dedup = [...new Set(e.target.value.split(/[\n,，、\s]+/).map((s) => s.trim()).filter(Boolean))]; setNames(dedup); setPicked([]); }}
         placeholder="粘贴全班名单（一行一人，也可用逗号/空格分隔），自动保存" rows={3}
         className="cb-input resize-none !py-2.5" />
       <input ref={fileRef} type="file" accept=".txt,.csv,text/plain,text/csv" className="hidden"
@@ -252,7 +252,7 @@ export default function PickerCard() {
       </div>
       <div className="flex gap-1.5">
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="单个添加姓名" className="cb-input" />
-        <button className="cb-btn-accent !px-3.5 flex items-center" onClick={() => { if (draft.trim()) { setNames([...names, draft.trim()]); setDraft(""); } }}><UiIcon k="plus" size={13} /></button>
+        <button className="cb-btn-accent !px-3.5 flex items-center" title="重名自动拦下，不进名单" onClick={() => { const n = draft.trim(); if (!n) return; if (names.includes(n)) { setRosterMsg(`“${n}”已在名单中`); setTimeout(() => setRosterMsg(""), 2000); setDraft(""); return; } setNames([...names, n]); setDraft(""); }}><UiIcon k="plus" size={13} /></button>
         <button className="cb-btn-ghost" onClick={() => { setNames([]); setResult(null); setPicked([]); }}>清空</button>
       </div>
     </div>
