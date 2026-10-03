@@ -9,6 +9,7 @@ const APP_VERSION: string = pkg.version;
 
 /** 应用内更新日志（与 README 版本演进表同源，保持简短） */
 const CHANGELOG: [string, string][] = [
+  ["v3.4 考勤隔天清", "每天打标自动清零"],
   ["v3.3 时钟开课", "时钟也带一键开课"],
   ["v3.2 点中即到", "点名点中自动记到"],
   ["v3.1 今日发群", "只拼今天课表每天发"],

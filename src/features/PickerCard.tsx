@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePersistentState } from "../lib/store-helpers";
 import { UiIcon } from "../components/icons";
 import CardHeader from "../components/CardHeader";
@@ -8,7 +8,8 @@ import { saveFile, stampName } from "../lib/export-file";
 /** 随机点名 / 分组：不重复点完一轮 + 历史 */
 export default function PickerCard() {
   const { activeCourse } = useLesson();
-  const [check, setCheck] = usePersistentState<Record<string, string>>("picker:check", {});
+  const [check, setCheck, checkLoaded] = usePersistentState<Record<string, string>>("picker:check", {});
+  const [checkDate, setCheckDate, dateLoaded] = usePersistentState("picker:check:date", "");
   const [names, setNames] = usePersistentState<string[]>("picker:names", []);
   const [draft, setDraft] = useState("");
   const [result, setResult] = useState<string | string[] | null>(null);
@@ -22,6 +23,14 @@ export default function PickerCard() {
   const [copyMsg, setCopyMsg] = useState("");
   const [rosterMsg, setRosterMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  // 考勤隔天清：每天第一次打开自动清空昨日打标，名单保留（跟上课态隔天清同理）
+  useEffect(() => {
+    if (!checkLoaded || !dateLoaded) return;
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (!checkDate) { setCheckDate(today); return; }
+    if (checkDate !== today) { setCheck({}); setCheckDate(today); }
+  }, [checkLoaded, dateLoaded]);
   // 名单快导：从 txt/csv 文件读名单，自动按行/逗号/空格拆，去重并入
   const importRoster = async (f: File) => {
     try {
