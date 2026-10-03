@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { usePersistentState, useNow } from "../lib/store-helpers";
 import { useSettings } from "../store/useSettings";
+import { useLesson } from "../store/useLesson";
 import { fmtDate, weekZh } from "../lib/utils";
 import CardHeader from "../components/CardHeader";
 
@@ -9,7 +10,8 @@ interface Course { id: string; day: number; start: string; end: string; name: st
 /** 时钟（默认开）：时间 / 日期 / 下一节倒计时 */
 export default function ClockCard() {
   const now = useNow(true);
-  const { enabled } = useSettings();
+  const { enabled, openFeature } = useSettings();
+  const { activeCourse, startClass, setFocusOn } = useLesson();
   const [courses] = usePersistentState<Course[]>("schedule:list", []);
   const t = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   const d = (now.getDay() + 6) % 7;
@@ -37,7 +39,13 @@ export default function ClockCard() {
         <div className="mt-2 text-[12px] font-medium text-neutral-500 dark:text-neutral-400">{fmtDate(now)} · {weekZh(now.getDay())}</div>
         {enabled.schedule && (current || next) && (
           <div className={`mt-2 mx-4 text-[11px] font-bold px-2.5 py-1.5 rounded-full ${current ? "bg-emerald-500 text-white" : "bg-sky-500/15 text-sky-700 dark:text-sky-300"}`}>
-            {current ? `正在上课：${current.name} · ${current.end}下课` : `${toNext}：${next!.name} · ${next!.start}${next!.room ? ` · ${next!.room}` : ""}`}
+            <div>{current ? `正在上课：${current.name} · ${current.end}下课` : `${toNext}：${next!.name} · ${next!.start}${next!.room ? ` · ${next!.room}` : ""}`}</div>
+            {!activeCourse && (current ?? next) && (
+              <button className="mt-1 px-3 py-1 rounded-full bg-white/25 hover:bg-white/40 text-[10px] font-black transition-colors"
+                onClick={() => { startClass((current ?? next)!); setFocusOn(false); openFeature("picker"); }}>
+                {current ? "一键开课 · 跳点名" : "提前开课 · 跳点名"}
+              </button>
+            )}
           </div>
         )}
       </div>
